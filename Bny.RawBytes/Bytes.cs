@@ -96,7 +96,14 @@ public static class Bytes
     /// <param name="output">Where to copy the bytes. <c>output.Length</c> must be <c>&gt; 2</c>.</param>
     /// <param name="value"><c>short</c> to convert to <c>byte</c> sequence</param>
     /// <exception cref="ArgumentException">Thrown when <c>output.Length &lt; 2</c></exception>
-    public static unsafe void FromShort(Span<byte> output, short value) => new ReadOnlySpan<byte>((byte*)&value, 2).CopyTo(output);
+    public static unsafe void FromShort(Span<byte> output, short value)
+    {
+        if (output.Length < 2)
+            throw new ArgumentException("The span length is smaller than 2", nameof(output));
+
+        fixed (byte* ptr = output)
+            *(short*)ptr = value;
+    }
 
     /// <summary>
     /// Converts <c>short</c> to sequence of bytes in <c>Endianness.Little</c> byte order
