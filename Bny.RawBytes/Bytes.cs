@@ -23,14 +23,14 @@ public static class Bytes
     /// </summary>
     /// <param name="b"><c>byte</c> to reinterpret</param>
     /// <returns><paramref name="b"/> interpreted as <code>sbyte</code></returns>
-    public static sbyte ToSbyte(byte b) => unchecked((sbyte)b);
+    public static sbyte ToInt8(byte b) => unchecked((sbyte)b);
 
     /// <summary>
     /// Reinterprets <c>sbyte</c> as <c>byte</c>
     /// </summary>
     /// <param name="b"><c>sbyte</c> to reinterpret</param>
     /// <returns><paramref name="b"/> interpreted as <c>byte</c></returns>
-    public static byte FromSbyte(sbyte b) => unchecked((byte)b);
+    public static byte FromInt8(sbyte b) => unchecked((byte)b);
 
     /// <summary>
     /// Converts <c>byte</c> sequence to <c>short</c> in <c>Endianness.Default</c> byte order
@@ -38,7 +38,7 @@ public static class Bytes
     /// <param name="bytes"><c>byte</c> sequence to convert. <c>bytes.Length</c> must be <c>&gt; 2</c>.</param>
     /// <returns><paramref name="bytes"/> converted to <c>short</c></returns>
     /// <exception cref="ArgumentException">thrown when <c>bytes.Length &lt; 2</c></exception>
-    public static unsafe short ToShort(ReadOnlySpan<byte> bytes)
+    public static unsafe short ToInt16(ReadOnlySpan<byte> bytes)
     {
         if (bytes.Length < 2)
             throw new ArgumentException("The span length must be at least 2", nameof(bytes));
@@ -53,7 +53,7 @@ public static class Bytes
     /// <param name="bytes"><c>byte</c> sequence to convert. <c>bytes.Length</c> must be <c>&gt; 2</c>.</param>
     /// <returns><paramref name="bytes"/> converted to <c>short</c></returns>
     /// <exception cref="ArgumentException">thrown when <c>bytes.Length &lt; 2</c></exception>
-    public static short ToShortLE(ReadOnlySpan<byte> bytes)
+    public static short ToInt16LE(ReadOnlySpan<byte> bytes)
     {
         if (bytes.Length < 2)
             throw new ArgumentException("The span length must be at least 2", nameof(bytes));
@@ -67,7 +67,7 @@ public static class Bytes
     /// <param name="bytes"><c>byte</c> sequence to convert. <c>bytes.Length</c> must be <c>&gt; 2</c>.</param>
     /// <returns><paramref name="bytes"/> converted to <c>short</c></returns>
     /// <exception cref="ArgumentException">thrown when <c>bytes.Length &lt; 2</c></exception>
-    public static short ToShortBE(ReadOnlySpan<byte> bytes)
+    public static short ToInt16BE(ReadOnlySpan<byte> bytes)
     {
         if (bytes.Length < 2)
             throw new ArgumentException("The span length must be at least 2", nameof(bytes));
@@ -82,11 +82,11 @@ public static class Bytes
     /// <param name="endianness">Endianness of the conversion</param>
     /// <returns><paramref name="bytes"/> converted to <c>short</c></returns>
     /// <exception cref="ArgumentException">Thrown for invalid <paramref name="endianness"/> values and when <c>bytes.Length &lt; 2</c></exception>
-    public static short ToShort(ReadOnlySpan<byte> bytes, Endianness endianness) => endianness switch
+    public static short ToInt16(ReadOnlySpan<byte> bytes, Endianness endianness) => endianness switch
     {
-        Endianness.Default => ToShort(bytes),
-        Endianness.Little => ToShortLE(bytes),
-        Endianness.Big => ToShortBE(bytes),
+        Endianness.Default => ToInt16(bytes),
+        Endianness.Little => ToInt16LE(bytes),
+        Endianness.Big => ToInt16BE(bytes),
         _ => throw new ArgumentException("Invalid endianness value", nameof(endianness)),
     };
 
@@ -96,7 +96,7 @@ public static class Bytes
     /// <param name="output">Where to copy the bytes. <c>output.Length</c> must be <c>&gt; 2</c>.</param>
     /// <param name="value"><c>short</c> to convert to <c>byte</c> sequence</param>
     /// <exception cref="ArgumentException">Thrown when <c>output.Length &lt; 2</c></exception>
-    public static unsafe void FromShort(Span<byte> output, short value)
+    public static unsafe void FromInt16(Span<byte> output, short value)
     {
         if (output.Length < 2)
             throw new ArgumentException("The span length is smaller than 2", nameof(output));
@@ -111,7 +111,7 @@ public static class Bytes
     /// <param name="output">Where to copy the bytes. <c>output.Length</c> must be <c>&gt; 2</c>.</param>
     /// <param name="value"><c>short</c> to convert to <c>byte</c> sequence</param>
     /// <exception cref="ArgumentException">Thrown when <c>output.Length &lt; 2</c></exception>
-    public static void FromShortLE(Span<byte> output, short value)
+    public static void FromInt16LE(Span<byte> output, short value)
     {
         if (output.Length < 2)
             throw new ArgumentException("The span length must be at least 2", nameof(output));
@@ -129,7 +129,7 @@ public static class Bytes
     /// <param name="output">Where to copy the bytes. <c>output.Length</c> must be <c>&gt; 2</c>.</param>
     /// <param name="value"><c>short</c> to convert to <c>byte</c> sequence</param>
     /// <exception cref="ArgumentException">Thrown when <c>output.Length &lt; 2</c></exception>
-    public static void FromShortBE(Span<byte> output, short value)
+    public static void FromInt16BE(Span<byte> output, short value)
     {
         if (output.Length < 2)
             throw new ArgumentException("The span length must be at least 2", nameof(output));
@@ -148,18 +148,18 @@ public static class Bytes
     /// <param name="value"><c>short</c> to convert to <c>byte</c> sequence</param>
     /// <param name="endianness">Byte order of the conversion</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="endianness"/> has invalid value or when <c>output.Length &lt; 2</c></exception>
-    public static void FromShort(Span<byte> output, short value, Endianness endianness)
+    public static void FromInt16(Span<byte> output, short value, Endianness endianness)
     {
         switch (endianness)
         {
             case Endianness.Default:
-                FromShort(output, value);
+                FromInt16(output, value);
                 return;
             case Endianness.Little:
-                FromShortLE(output, value);
+                FromInt16LE(output, value);
                 return;
             case Endianness.Big:
-                FromShortBE(output, value);
+                FromInt16BE(output, value);
                 return;
         }
 
