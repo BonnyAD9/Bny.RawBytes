@@ -165,4 +165,134 @@ public static class Bytes
 
         throw new ArgumentException("Invalid endianness value", nameof(endianness));
     }
+
+    /// <summary>
+    /// Converts the given bytes to ushort in the system endianness
+    /// </summary>
+    /// <param name="b">bytes to convert</param>
+    /// <returns>converted value</returns>
+    /// <exception cref="ArgumentException">thrown when the span length is less than 2</exception>
+    public static unsafe ushort ToUInt16(ReadOnlySpan<byte> b)
+    {
+        if (b.Length < 2)
+            throw new ArgumentException("The span length must be at least 2", nameof(b));
+
+        fixed (byte* ptr = b)
+            return *(ushort*)ptr;
+    }
+
+    /// <summary>
+    /// Converts the given bytes to ushort in the little-endian byte order
+    /// </summary>
+    /// <param name="b">bytes to convert</param>
+    /// <returns>converted value</returns>
+    /// <exception cref="ArgumentException">thrown when the span length is less than 2</exception>
+    public static ushort ToUInt16LE(ReadOnlySpan<byte> b)
+    {
+        if (b.Length < 2)
+            throw new ArgumentException("The span length must be at least 2", nameof(b));
+
+        return (ushort)(b[0] << 8 | b[1]);
+    }
+
+    /// <summary>
+    /// Converts the given bytes to ushort in the big-endian byte order
+    /// </summary>
+    /// <param name="b">bytes to convert</param>
+    /// <returns>the converted value</returns>
+    /// <exception cref="ArgumentException">thrown when span length is less than 2</exception>
+    public static ushort ToUInt16BE(ReadOnlySpan<byte> b) => b.Length < 2
+            ? throw new ArgumentException("The spab length must be at least 2", nameof(b))
+            : (ushort)(b[1] << 8 | b[0]);
+
+    /// <summary>
+    /// Converts the bytes into ushort in the given byte order
+    /// </summary>
+    /// <param name="b">bytes to convert</param>
+    /// <param name="endianness">byte order to use</param>
+    /// <returns>the converted value</returns>
+    /// <exception cref="ArgumentException">Thrown for invalid value of endianness</exception>
+    public static ushort ToUInt16(ReadOnlySpan<byte> b, Endianness endianness) => endianness switch
+    {
+        Endianness.Default => ToUInt16(b),
+        Endianness.Big => ToUInt16BE(b),
+        Endianness.Little => ToUInt16LE(b),
+        _ => throw new ArgumentException("Invalid endianness value", nameof(endianness)),
+    };
+
+    /// <summary>
+    /// Converts ushort into bytes in the system byte order
+    /// </summary>
+    /// <param name="output">Where to write the bytes</param>
+    /// <param name="value">value to convert</param>
+    /// <exception cref="ArgumentException">throw when the span length is less than 2</exception>
+    public static unsafe void FromUInt16(Span<byte> output, ushort value)
+    {
+        if (output.Length < 2)
+            throw new ArgumentException("The span length must be at least 2", nameof(output));
+
+        fixed (byte* ptr = output)
+            *(ushort*)ptr = value;
+    }
+
+    /// <summary>
+    /// Converts ushort to bytes in the little-endian byte order
+    /// </summary>
+    /// <param name="output">resulting bytes</param>
+    /// <param name="value">value to convert</param>
+    /// <exception cref="ArgumentException">thrown when the span length is less than 2</exception>
+    public static void FromUInt16LE(Span<byte> output, ushort value)
+    {
+        if (output.Length < 2)
+            throw new ArgumentException("The span length must be at least 2", nameof(output));
+
+        unchecked
+        {
+            output[1] = (byte)(value >> 8);
+            output[0] = (byte)value;
+        }
+    }
+
+    /// <summary>
+    /// Converts ushort to bytes in the big-endian byte order
+    /// </summary>
+    /// <param name="output">resulting bytes</param>
+    /// <param name="value">value to convert</param>
+    /// <exception cref="ArgumentException">thrown when the span length is less than 2</exception>
+    public static void FromUInt16BE(Span<byte> output, ushort value)
+    {
+        if (output.Length < 2)
+            throw new ArgumentException("The span length must be at least 2", nameof(output));
+
+        unchecked
+        {
+            output[0] = (byte)(value >> 8);
+            output[1] = (byte)value;
+        }
+    }
+
+    /// <summary>
+    /// Converts ushort to bytes in the given byte order
+    /// </summary>
+    /// <param name="output">result</param>
+    /// <param name="value">value to convert</param>
+    /// <param name="endianness">endianness to use</param>
+    /// <exception cref="ArgumentException">thrown for invalid endianness values</exception>
+    public static void FromUInt16(Span<byte> output, ushort value, Endianness endianness)
+    {
+        switch (endianness)
+        {
+            case Endianness.Default:
+                FromUInt16(output, value);
+                return;
+            case Endianness.Little:
+                FromUInt16LE(output, value);
+                return;
+            case Endianness.Big:
+                FromUInt16BE(output, value);
+                return;
+        }
+
+        throw new ArgumentException("Invalid endianness value", nameof(endianness));
+    }
 }
