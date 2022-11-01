@@ -192,7 +192,7 @@ public static class Bytes
         if (b.Length < 2)
             throw new ArgumentException("The span length must be at least 2", nameof(b));
 
-        return (ushort)(b[0] << 8 | b[1]);
+        return (ushort)(b[1] << 8 | b[0]);
     }
 
     /// <summary>
@@ -203,7 +203,7 @@ public static class Bytes
     /// <exception cref="ArgumentException">thrown when span length is less than 2</exception>
     public static ushort ToUInt16BE(ReadOnlySpan<byte> b) => b.Length < 2
             ? throw new ArgumentException("The spab length must be at least 2", nameof(b))
-            : (ushort)(b[1] << 8 | b[0]);
+            : (ushort)(b[0] << 8 | b[1]);
 
     /// <summary>
     /// Converts the bytes into ushort in the given byte order
@@ -319,7 +319,7 @@ public static class Bytes
     /// <exception cref="ArgumentException">throw when the span length is less than 4</exception>
     public static int ToInt32LE(ReadOnlySpan<byte> data) => data.Length < 4
         ? throw new ArgumentException("The span length must be at least 4", nameof(data))
-        : data[0] << 24 | data[1] << 16 | data[2] << 8 | data[3];
+        : data[3] << 24 | data[2] << 16 | data[1] << 8 | data[0];
 
     /// <summary>
     /// Converts bytes to int in the big-endian byte order
@@ -329,7 +329,7 @@ public static class Bytes
     /// <exception cref="ArgumentException">throw when the span length is less than 4</exception>
     public static int ToInt32BE(ReadOnlySpan<byte> data) => data.Length < 4
         ? throw new ArgumentException("The span length must be at least 4", nameof(data))
-        : data[3] << 24 | data[2] << 16 | data[1] << 8 | data[0];
+        : data[0] << 24 | data[1] << 16 | data[2] << 8 | data[3];
 
     /// <summary>
     /// Converts bytes to int in the given byte order
@@ -449,7 +449,7 @@ public static class Bytes
     /// <exception cref="ArgumentException">throw when the span length is less than 4</exception>
     public static uint ToUInt32LE(ReadOnlySpan<byte> data) => data.Length < 4
         ? throw new ArgumentException("The span length must be at least 4", nameof(data))
-        : unchecked((uint)(data[0] << 24 | data[1] << 16 | data[2] << 8 | data[3]));
+        : unchecked((uint)(data[3] << 24 | data[2] << 16 | data[1] << 8 | data[0]));
 
     /// <summary>
     /// Converts bytes to uint in the big-endian byte order
@@ -459,7 +459,7 @@ public static class Bytes
     /// <exception cref="ArgumentException">throw when the span length is less than 4</exception>
     public static uint ToUInt32BE(ReadOnlySpan<byte> data) => data.Length < 4
         ? throw new ArgumentException("The span length must be at least 4", nameof(data))
-        : unchecked((uint)(data[3] << 24 | data[2] << 16 | data[1] << 8 | data[0]));
+        : unchecked((uint)(data[0] << 24 | data[1] << 16 | data[2] << 8 | data[3]));
 
     /// <summary>
     /// Converts bytes to uint in the given byte order
@@ -555,4 +555,29 @@ public static class Bytes
 
         throw new ArgumentException("Invalid endianness value", nameof(endianness));
     }
+
+    /*/// <summary>
+    /// Converts bytes to long in the system byte order
+    /// </summary>
+    /// <param name="data">bytes to convert</param>
+    /// <returns>the converted value</returns>
+    /// <exception cref="ArgumentException">thrown when the span length is less than 8</exception>
+    public static unsafe long ToInt64(ReadOnlySpan<byte> data)
+    {
+        if (data.Length < 8)
+            throw new ArgumentException("The span must have length of at least 8", nameof(data));
+
+        fixed (byte* ptr = data)
+            return *(long*)ptr;
+    }
+
+    /// <summary>
+    /// Converts bytes to long in the little-endian byte order
+    /// </summary>
+    /// <param name="data">bytes to convert</param>
+    /// <returns>the converted value</returns>
+    /// <exception cref="ArgumentException">thrown when the span length is less than 8</exception>
+    public static long ToInt64LE(ReadOnlySpan<byte> data) => data.Length < 8
+        ? throw new ArgumentException("The span length must be at least 8", nameof(data))
+        : (long)data[0] << 56 | (long)data[1] << 48 | (long)data[2] >> 40 | (long)data[3] >> 32;*/
 }
