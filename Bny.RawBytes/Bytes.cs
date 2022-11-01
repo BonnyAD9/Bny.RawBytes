@@ -425,4 +425,134 @@ public static class Bytes
 
         throw new ArgumentException("Invalid endianness value", nameof(endianness));
     }
+
+    /// <summary>
+    /// Converts bytes to uint in the system byte order
+    /// </summary>
+    /// <param name="data">bytes to convert</param>
+    /// <returns>converted value</returns>
+    /// <exception cref="ArgumentException">thrown when the span length is less than 4</exception>
+    public static unsafe uint ToUInt32(ReadOnlySpan<byte> data)
+    {
+        if (data.Length < 4)
+            throw new ArgumentException("The span length must be at least 4", nameof(data));
+
+        fixed (byte* ptr = data)
+            return *(uint*)ptr;
+    }
+
+    /// <summary>
+    /// Converts bytes to uint in the little-endian byte order
+    /// </summary>
+    /// <param name="data">bytes to convert</param>
+    /// <returns>converted value</returns>
+    /// <exception cref="ArgumentException">throw when the span length is less than 4</exception>
+    public static uint ToUInt32LE(ReadOnlySpan<byte> data) => data.Length < 4
+        ? throw new ArgumentException("The span length must be at least 4", nameof(data))
+        : unchecked((uint)(data[0] << 24 | data[1] << 16 | data[2] << 8 | data[3]));
+
+    /// <summary>
+    /// Converts bytes to uint in the big-endian byte order
+    /// </summary>
+    /// <param name="data">bytes to convert</param>
+    /// <returns>converted value</returns>
+    /// <exception cref="ArgumentException">throw when the span length is less than 4</exception>
+    public static uint ToUInt32BE(ReadOnlySpan<byte> data) => data.Length < 4
+        ? throw new ArgumentException("The span length must be at least 4", nameof(data))
+        : unchecked((uint)(data[3] << 24 | data[2] << 16 | data[1] << 8 | data[0]));
+
+    /// <summary>
+    /// Converts bytes to uint in the given byte order
+    /// </summary>
+    /// <param name="data">data to convert</param>
+    /// <param name="endianness">endianness to use</param>
+    /// <returns>the converted value</returns>
+    /// <exception cref="ArgumentException">thrown for invalid endianness values</exception>
+    public static uint ToUInt32(ReadOnlySpan<byte> data, Endianness endianness) => endianness switch
+    {
+        Endianness.Default => ToUInt32(data),
+        Endianness.Little => ToUInt32LE(data),
+        Endianness.Big => ToUInt32BE(data),
+        _ => throw new ArgumentException("Invalid endianness value", nameof(endianness)),
+    };
+
+    /// <summary>
+    /// Converts uint to bytes in the system endianness
+    /// </summary>
+    /// <param name="output">result</param>
+    /// <param name="value">value to convert</param>
+    /// <exception cref="ArgumentException">thrown when the span length is less than 4</exception>
+    public static unsafe void FromUInt32(Span<byte> output, uint value)
+    {
+        if (output.Length < 4)
+            throw new ArgumentException("The span length must be at least 4", nameof(output));
+
+        fixed (byte* ptr = output)
+            *(uint*)ptr = value;
+    }
+
+    /// <summary>
+    /// Converts uint to bytes in the little-endian byte order
+    /// </summary>
+    /// <param name="output">result</param>
+    /// <param name="value">value to convert</param>
+    /// <exception cref="ArgumentException">thrown when the span length is less than 4</exception>
+    public static void FromUInt32LE(Span<byte> output, uint value)
+    {
+        if (output.Length < 4)
+            throw new ArgumentException("The span length must be at least 4", nameof(output));
+
+        unchecked
+        {
+            output[3] = (byte)(value >> 24);
+            output[2] = (byte)(value >> 16);
+            output[1] = (byte)(value >> 8);
+            output[0] = (byte)value;
+        }
+    }
+
+    /// <summary>
+    /// Converts uint to bytes in the big-endian byte order
+    /// </summary>
+    /// <param name="output">result</param>
+    /// <param name="value">value to convert</param>
+    /// <exception cref="ArgumentException">thrown when the span length is less than 4</exception>
+    public static void FromUInt32BE(Span<byte> output, uint value)
+    {
+        if (output.Length < 4)
+            throw new ArgumentException("The span length must be at least 4", nameof(output));
+
+        unchecked
+        {
+            output[0] = (byte)(value >> 24);
+            output[1] = (byte)(value >> 16);
+            output[2] = (byte)(value >> 8);
+            output[3] = (byte)value;
+        }
+    }
+
+    /// <summary>
+    /// Converts uint to bytes in the given byte order
+    /// </summary>
+    /// <param name="output">result</param>
+    /// <param name="value">uint to convert</param>
+    /// <param name="endianness">byte order</param>
+    /// <exception cref="ArgumentException">thrown for invalid endianness</exception>
+    public static void FromUInt32(Span<byte> output, uint value, Endianness endianness)
+    {
+        switch (endianness)
+        {
+            case Endianness.Default:
+                FromUInt32(output, value);
+                return;
+            case Endianness.Little:
+                FromUInt32LE(output, value);
+                return;
+            case Endianness.Big:
+                FromUInt32BE(output, value);
+                return;
+        }
+
+        throw new ArgumentException("Invalid endianness value", nameof(endianness));
+    }
 }
