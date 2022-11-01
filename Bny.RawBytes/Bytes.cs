@@ -556,7 +556,7 @@ public static class Bytes
         throw new ArgumentException("Invalid endianness value", nameof(endianness));
     }
 
-    /*/// <summary>
+    /// <summary>
     /// Converts bytes to long in the system byte order
     /// </summary>
     /// <param name="data">bytes to convert</param>
@@ -579,5 +579,118 @@ public static class Bytes
     /// <exception cref="ArgumentException">thrown when the span length is less than 8</exception>
     public static long ToInt64LE(ReadOnlySpan<byte> data) => data.Length < 8
         ? throw new ArgumentException("The span length must be at least 8", nameof(data))
-        : (long)data[0] << 56 | (long)data[1] << 48 | (long)data[2] >> 40 | (long)data[3] >> 32;*/
+        : (long)data[7] << 56 | (long)data[6] << 48 | (long)data[5] << 40 | (long)data[4] << 32 | (long)data[3] << 24 | (long)data[2] << 16 | (long)data[1] << 8 | data[0];
+
+    /// <summary>
+    /// Converts bytes to long in the big-endian byte order
+    /// </summary>
+    /// <param name="data">bytes to convert</param>
+    /// <returns>the converted value</returns>
+    /// <exception cref="ArgumentException">thrown when the span length is less than 8</exception>
+    public static long ToInt64BE(ReadOnlySpan<byte> data) => data.Length < 8
+        ? throw new ArgumentException("The span length must be at least 8", nameof(data))
+        : (long)data[0] << 56 | (long)data[1] << 48 | (long)data[2] << 40 | (long)data[3] << 32 | (long)data[4] << 24 | (long)data[5] << 16 | (long)data[6] << 8 | data[7];
+
+    /// <summary>
+    /// Converts bytes to long in the specified byte order
+    /// </summary>
+    /// <param name="data">bytes to convert</param>
+    /// <param name="endianness">byte order</param>
+    /// <returns>the converted value</returns>
+    /// <exception cref="ArgumentException">thrown for invalid endianness values</exception>
+    public static long ToInt64(ReadOnlySpan<byte> data, Endianness endianness) => endianness switch
+    {
+        Endianness.Default => ToInt64(data),
+        Endianness.Little => ToInt64LE(data),
+        Endianness.Big => ToInt64BE(data),
+        _ => throw new ArgumentException("Invalid endianness value", nameof(endianness)),
+    };
+
+    /// <summary>
+    /// Converts long to bytes in the system byte order
+    /// </summary>
+    /// <param name="output">result</param>
+    /// <param name="value">long to convert</param>
+    /// <exception cref="ArgumentException">thrown when the span length is less than 8</exception>
+    public static unsafe void FromInt64(Span<byte> output, long value)
+    {
+        if (output.Length < 8)
+            throw new ArgumentException("The span length must be at least 8", nameof(output));
+
+        fixed (byte* ptr = output)
+            *(long*)ptr = value;
+    }
+
+    /// <summary>
+    /// Converts long to bytes in the little-endian byte order
+    /// </summary>
+    /// <param name="output">result</param>
+    /// <param name="value">long to convert</param>
+    /// <exception cref="ArgumentException">thrown when the span length is less than 8</exception>
+    public static void FromInt64LE(Span<byte> output, long value)
+    {
+        if (output.Length < 8)
+            throw new ArgumentException("The span length must be at least 8", nameof(output));
+
+        unchecked
+        {
+            output[7] = (byte)(value >> 56);
+            output[6] = (byte)(value >> 48);
+            output[5] = (byte)(value >> 40);
+            output[4] = (byte)(value >> 32);
+            output[3] = (byte)(value >> 24);
+            output[2] = (byte)(value >> 16);
+            output[1] = (byte)(value >> 8);
+            output[0] = (byte)value;
+        }
+    }
+
+    /// <summary>
+    /// Converts long to bytes in the big-endian byte order
+    /// </summary>
+    /// <param name="output">result</param>
+    /// <param name="value">long to convert</param>
+    /// <exception cref="ArgumentException">thrown when the span length is less than 8</exception>
+    public static void FromInt64BE(Span<byte> output, long value)
+    {
+        if (output.Length < 8)
+            throw new ArgumentException("The span length must be at least 8", nameof(output));
+
+        unchecked
+        {
+            output[0] = (byte)(value >> 56);
+            output[1] = (byte)(value >> 48);
+            output[2] = (byte)(value >> 40);
+            output[3] = (byte)(value >> 32);
+            output[4] = (byte)(value >> 24);
+            output[5] = (byte)(value >> 16);
+            output[6] = (byte)(value >> 8);
+            output[7] = (byte)value;
+        }
+    }
+
+    /// <summary>
+    /// Converts long to bytes in the given byte order
+    /// </summary>
+    /// <param name="output">result</param>
+    /// <param name="value">long to convert</param>
+    /// <param name="endianness">byte order</param>
+    /// <exception cref="ArgumentException">throw for invalid endianness values</exception>
+    public static void FromInt64(Span<byte> output, long value, Endianness endianness)
+    {
+        switch (endianness)
+        {
+            case Endianness.Default:
+                FromInt64(output, value);
+                return;
+            case Endianness.Little:
+                FromInt64LE(output, value);
+                return;
+            case Endianness.Big:
+                FromInt64BE(output, value);
+                return;
+        }
+
+        throw new ArgumentException("Invalid endianness value");
+    }
 }
