@@ -29,18 +29,30 @@ public static class Bytes
     /// <param name="data"></param>
     /// <param name="endianness"></param>
     /// <param name="signed"></param>
+    /// <param name="index"></param>
+    /// <returns></returns>
+    public static T To<T>(ReadOnlySpan<byte> data, Endianness endianness = Endianness.Default, bool? signed = null, int index = 0) where T : new()
+        => (T)To(data, typeof(T), endianness, signed, index);
+
+    /// <summary>
+    /// Converts byte array to the given type
+    /// </summary>
+    /// <param name="data"></param>
+    /// <param name="type"></param>
+    /// <param name="endianness"></param>
+    /// <param name="signed"></param>
+    /// <param name="index"></param>
     /// <returns></returns>
     /// <exception cref="ArgumentException"></exception>
-    public static T To<T>(byte[] data, Endianness endianness = Endianness.Default, bool? signed = null, int index = 0) where T : new()
+    public static object To(ReadOnlySpan<byte> data, Type type, Endianness endianness = Endianness.Default, bool? signed = null, int index = 0)
     {
-        var type = typeof(T);
-        T res = new();
-        if (TryReadIBInaryInteger(data, ref res, index, endianness, signed.HasValue ? signed.Value : res is sbyte or short or int or long or BigInteger))
+        object res = Activator.CreateInstance(type)!;
+        if (TryReadIBInaryInteger(data, ref res, type, index, endianness, signed))
             return res;
-        throw new ArgumentException("Cannot convert to this value type", nameof(T));
+        throw new ArgumentException("Cannot convert to this value type", nameof(type));
     }
 
-    private static bool TryReadIBInaryInteger<T>(byte[] data, ref T result, int index = 0, Endianness endianness = Endianness.Default, bool signed = false) where T : new()
+    private static bool TryReadIBInaryInteger(ReadOnlySpan<byte> data, ref object result, Type type, int index = 0, Endianness endianness = Endianness.Default, bool? signed = false)
     {
         string mname = endianness switch
         {
@@ -50,15 +62,17 @@ public static class Bytes
             _ => throw new ArgumentException("Invalid endianness value")
         };
 
-        var type = typeof(T);
-
-        var bi = type.GetInterfaces().FirstOrDefault(p => p.FullName is not null && p.FullName.Contains("System.Numerics.IBinaryInteger"));
+        var interfaces = type.GetInterfaces();
+        var bi = interfaces.FirstOrDefault(p => p.FullName is not null && p.FullName.Contains("System.Numerics.IBinaryInteger"));
         if (bi is null)
             return false;
 
+        bool isUnsigned = signed.HasValue ? !signed.Value : !interfaces.Any(p => p.FullName is not null && p.FullName.Contains("System.Numerics.ISignedNumber"));
+
         try
         {
-            result = (T)bi.GetMethod(mname, new Type[] { typeof(byte[]), typeof(int), typeof(bool) })!.Invoke(result, new object[] { data, index, !signed })!;
+            var arr = data.ToArray();
+            result = bi.GetMethod(mname, new Type[] { typeof(byte[]), typeof(int), typeof(bool) })!.Invoke(result, new object[] { arr, index, isUnsigned })!;
         }
         catch
         {
