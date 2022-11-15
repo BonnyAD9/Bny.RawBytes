@@ -25,25 +25,23 @@ public static class Bytes
     /// <summary>
     /// Converts byte array to the given type
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="data"></param>
-    /// <param name="endianness"></param>
-    /// <param name="signed"></param>
-    /// <param name="index"></param>
-    /// <returns></returns>
+    /// <typeparam name="T">Type to convert to</typeparam>
+    /// <param name="data">Bytes to convert</param>
+    /// <param name="endianness">byte order</param>
+    /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type</param>
+    /// <returns>The byte span converted to the type</returns>
     public static T To<T>(ReadOnlySpan<byte> data, Endianness endianness = Endianness.Default, bool? signed = null) where T : new()
         => (T)To(data, typeof(T), endianness, signed);
 
     /// <summary>
     /// Converts byte array to the given type
     /// </summary>
-    /// <param name="data"></param>
-    /// <param name="type"></param>
-    /// <param name="endianness"></param>
-    /// <param name="signed"></param>
-    /// <param name="index"></param>
-    /// <returns></returns>
-    /// <exception cref="ArgumentException"></exception>
+    /// <param name="data">Bytes to convert</param>
+    /// <param name="type">Type to convert to</param>
+    /// <param name="endianness">byte order</param>
+    /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type</param>
+    /// <returns>The byte span converted to the type</returns>
+    /// <exception cref="ArgumentException">Thrown for unsuported types</exception>
     public static object To(ReadOnlySpan<byte> data, Type type, Endianness endianness = Endianness.Default, bool? signed = null)
     {
         object res = Activator.CreateInstance(type)!;
@@ -82,29 +80,29 @@ public static class Bytes
     }
 
     /// <summary>
-    /// 
+    /// Converts the value into byte array
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="value"></param>
-    /// <param name="result"></param>
-    /// <param name="endianness"></param>
-    /// <returns></returns>
+    /// <typeparam name="T">Type of the value to convert</typeparam>
+    /// <param name="value">vylue to convert</param>
+    /// <param name="result">Where the bytes will be written</param>
+    /// <param name="endianness">Byte order of the conversion</param>
+    /// <returns>number of written bytes, -1 on error</returns>
     public static int From<T>(T value, Span<byte> result, Endianness endianness = Endianness.Default)
         => From(value!, result, typeof(T), endianness);
 
     /// <summary>
-    /// 
+    /// Converts the value into byte array
     /// </summary>
-    /// <param name="result"></param>
-    /// <param name="value"></param>
-    /// <param name="type"></param>
-    /// <param name="endianness"></param>
-    /// <returns></returns>
-    /// <exception cref="ArgumentException"></exception>
+    /// <param name="value">vylue to convert</param>
+    /// <param name="result">Where the bytes will be written</param>
+    /// <param name="type">Type of the value to convert</param>
+    /// <param name="endianness">Byte order of the conversion</param>
+    /// <returns>number of written bytes, -1 on error</returns>
+    /// <exception cref="ArgumentException">thrown for unsupported types</exception>
     public static int From(object value, Span<byte> result, Type type, Endianness endianness = Endianness.Default)
     {
         int len = TryWriteIBinaryInteger(value, result, type, endianness);
-        if (len != 0)
+        if (len != -1)
             return len;
         throw new ArgumentException("Cannot convert from this value type", nameof(value));
     }
@@ -122,13 +120,13 @@ public static class Bytes
         var interfaces = type.GetInterfaces();
         var bi = interfaces.FirstOrDefault(p => p.FullName is not null && p.FullName.Contains("System.Numerics.IBinaryInteger"));
         if (bi is null)
-            return 0;
+            return -1;
 
         try
         {
             int byteCount = (int)bi.GetMethod("GetByteCount", Array.Empty<Type>())!.Invoke(data, Array.Empty<object>())!;
             if (result.Length < byteCount)
-                return 0;
+                return -1;
 
             byte[] arr = new byte[byteCount];
             int r = (int)bi.GetMethod(mname, new Type[] { typeof(byte[]) })!.Invoke(data, new object[] { arr })!;
@@ -138,7 +136,7 @@ public static class Bytes
         }
         catch
         {
-            return 0;
+            return -1;
         }
     }
 }
