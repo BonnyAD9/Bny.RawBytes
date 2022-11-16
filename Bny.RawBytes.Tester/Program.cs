@@ -1,5 +1,4 @@
 ﻿using Bny.RawBytes;
-using System.Diagnostics.CodeAnalysis;
 
 var arr = new byte[] { 255, 255, 255, 255, 0, 2, 0, 0 };
 Console.WriteLine(Bytes.To<BinaryTest>(arr));

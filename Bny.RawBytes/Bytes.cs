@@ -30,7 +30,7 @@ public static class Bytes
     /// <param name="endianness">byte order</param>
     /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type</param>
     /// <returns>The byte span converted to the type</returns>
-    public static T To<T>(ReadOnlySpan<byte> data, Endianness endianness = Endianness.Default, bool? signed = null) where T : new()
+    public static T To<T>(ReadOnlySpan<byte> data, Endianness endianness = Endianness.Default, bool? signed = null)
         => (T)To(data, typeof(T), endianness, signed);
 
     /// <summary>
@@ -42,7 +42,7 @@ public static class Bytes
     /// <param name="endianness">byte order</param>
     /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type</param>
     /// <returns>The byte span converted to the type</returns>
-    public static T To<T>(ReadOnlySpan<byte> data, out int readedBytes, Endianness endianness = Endianness.Default, bool? signed = null) where T : new()
+    public static T To<T>(ReadOnlySpan<byte> data, out int readedBytes, Endianness endianness = Endianness.Default, bool? signed = null)
         => (T)To(data, typeof(T), out readedBytes, endianness, signed);
 
     /// <summary>
