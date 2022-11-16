@@ -1,10 +1,7 @@
 ﻿using Bny.RawBytes;
 
 var arr = new byte[] { 255, 255, 255, 255, 0, 2, 0, 0 };
-
-var res = Bytes.To<BinaryTest>(arr);
-
-Console.WriteLine(res);
+Console.WriteLine(Bytes.To<BinaryTest>(arr));
 
 [BinaryObject]
 class BinaryTest

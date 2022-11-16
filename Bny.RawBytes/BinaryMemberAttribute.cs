@@ -24,7 +24,7 @@ public class BinaryMemberAttribute : Attribute
     /// Creates new BinaryFieldAttribute
     /// </summary>
     /// <param name="endianness">prefered byte order of the conversion</param>
-    /// <param name="order">order of the fields</param>
+    /// <param name="order">order of the fields, this is by default the line number</param>
     public BinaryMemberAttribute(Endianness endianness = Endianness.Default, [CallerLineNumber] int order = 0)
     {
         _endianness = endianness;

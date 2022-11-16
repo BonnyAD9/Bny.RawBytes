@@ -102,7 +102,7 @@ public static class Bytes
         if (result is null)
             return -1;
 
-        var dend = attrib.Endianness == Endianness.Default ? DefaultEndianness : attrib.Endianness;
+        var dend = attrib.Endianness == Endianness.Default ? (endianness == Endianness.Default ? DefaultEndianness : endianness) : attrib.Endianness;
 
         const BindingFlags AllBindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
 
