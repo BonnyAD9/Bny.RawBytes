@@ -9,6 +9,12 @@ Bytes.From(new BinaryTest(512, -1), s);
 foreach (var i in arr)
     Console.WriteLine(i);
 
+s.Position = 0;
+Console.WriteLine(Bytes.From(-1, s));
+Console.WriteLine("Hm");
+foreach (var i in arr)
+    Console.WriteLine(i);
+
 record BinaryTest(int Width, int Height) : IBinaryObject<BinaryTest>
 {
     public static int ReadSize => 8;

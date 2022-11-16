@@ -2,6 +2,7 @@
 using System.Net.NetworkInformation;
 using System.Numerics;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace Bny.RawBytes;
 
@@ -22,6 +23,11 @@ public static class Bytes
             return *(byte*)&s == 1;
         }
     }
+
+    /// <summary>
+    /// The default byte order
+    /// </summary>
+    public static readonly Endianness DefaultEndianness = IsDefaultLE ? Endianness.Little : Endianness.Big;
 
     /// <summary>
     /// Converts byte array to the given type
@@ -146,6 +152,8 @@ public static class Bytes
     public static object To(Stream data, Type type, Endianness endianness = Endianness.Default, bool? signed = null)
     {
         object? obj;
+        if (TryReadBasicStream(data, out obj, type, endianness, signed))
+            return obj;
         if (TryReadIBinaryObject(data, out obj, type, endianness))
             return obj;
         throw new ArgumentException("Cannot convert to this value type from stream", nameof(type));
@@ -164,6 +172,52 @@ public static class Bytes
         return ret && result is not null;
     }
 
+    private static bool TryReadBasicStream(Stream data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness, bool? signed = null)
+    {
+        result = CreateInstance(type);
+        if (result is null)
+            return false;
+
+        bool ret;
+        switch (result)
+        {
+            case sbyte n:
+                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed ?? true);
+                result = n;
+                return ret;
+            case byte n:
+                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed ?? false);
+                result = n;
+                return ret;
+            case short n:
+                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed ?? true);
+                result = n;
+                return ret;
+            case ushort n:
+                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed ?? false);
+                result = n;
+                return ret;
+            case int n:
+                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed ?? true);
+                result = n;
+                return ret;
+            case uint n:
+                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed ?? false);
+                result = n;
+                return ret;
+            case long n:
+                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed ?? true);
+                result = n;
+                return ret;
+            case ulong n:
+                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed ?? false);
+                result = n;
+                return ret;
+            default:
+                return false;
+        };
+    }
+
     // Wrappers for IBinaryInteger TryRead methods with SizedPointer as parameter instead of Span
     private static bool _TryReadIBinaryIntegerLE<T>(SizedPointer<byte> ptr, bool isUnsigned, out T result) where T : IBinaryInteger<T>
         => T.TryReadLittleEndian(ptr, isUnsigned, out result);
@@ -175,6 +229,22 @@ public static class Bytes
         => T.TryReadFromBinary(ptr, out result, endianness);
     private static bool _TryReadIBinaryObjectS<T>(Stream str, out T? result, Endianness endianness) where T : IBinaryObject<T>
         => T.TryReadFromBinary(str, out result, endianness);
+
+    private static bool TryReadIBinaryIntegerStream<T>(Stream str, [NotNullWhen(true)] out T? result, Endianness endianness, bool signed) where T : IBinaryInteger<T>
+    {
+        result = default;
+        int size = Marshal.SizeOf<T>();
+        Span<byte> buffer = stackalloc byte[size];
+        str.Read(buffer);
+
+        return endianness switch
+        {
+            Endianness.Big => T.TryReadBigEndian(buffer, !signed, out result),
+            Endianness.Little => T.TryReadLittleEndian(buffer, !signed, out result),
+            Endianness.Default => IsDefaultLE ? T.TryReadLittleEndian(buffer, !signed, out result) : T.TryReadBigEndian(buffer, !signed, out result),
+            _ => false,
+        };
+    }
 
     /// <summary>
     /// Converts the value into byte array
@@ -287,11 +357,27 @@ public static class Bytes
             return false;
 
         buffer = new byte[size];
-        return From(value, buffer, type, endianness) >= 0;
+        var ret = From(value, buffer, type, endianness) >= 0;
+        if (!ret)
+            return false;
+        output.Write(buffer);
+        return true;
     }
 
     private static bool _TryWriteIBinaryIntegerLE<T>(T value, SizedPointer<byte> ptr, out int bytesWritten) where T : IBinaryInteger<T>
         => value.TryWriteLittleEndian(ptr, out bytesWritten);
     private static bool _TryWriteIBinaryIntegerBE<T>(T value, SizedPointer<byte> ptr, out int bytesWritten) where T : IBinaryInteger<T>
         => value.TryWriteBigEndian(ptr, out bytesWritten);
+
+    private static object? CreateInstance(Type type)
+    {
+        try
+        {
+            return Activator.CreateInstance(type);
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }
