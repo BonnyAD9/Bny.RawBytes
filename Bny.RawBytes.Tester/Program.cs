@@ -20,6 +20,7 @@ class BinaryTest
     [BinaryMember]
     public int Height { get; init; }
 
+    // members without the attribute are ignored
     public int Size => Width * Height;
 
     public override string ToString() => $"[{Size}({Width} * {Height})]";

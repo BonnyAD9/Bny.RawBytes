@@ -27,7 +27,8 @@ class BinaryTest
     // Second will be readed height in the default byte order (big-endian in this case)
     [BinaryMember]
     public int Height { get; init; }
-
+    
+    // members without the attribute are ignored
     public int Size => Width * Height;
 
     public override string ToString() => $"[{Size}({Width} * {Height})]";
