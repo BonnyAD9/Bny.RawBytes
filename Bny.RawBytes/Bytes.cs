@@ -74,7 +74,7 @@ public static class Bytes
         try
         {
             // use reflection to call wrappers for IBinaryInteger.TryReadLittleEndian or IBinaryInteger.TryReadBigEndian with the type parameter
-            var parm = new object[] { new SizedPointer<byte>(data), isUnsigned, Activator.CreateInstance(type)! };
+            var parm = new object[] { new SizedPointer<byte>(data), isUnsigned, null! };
             var res = (bool)typeof(Bytes).GetMethod(mname, BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(type)!.Invoke(null, parm)!;
             result = parm[2];
             return res;
@@ -123,14 +123,13 @@ public static class Bytes
     {
         string mname = endianness switch
         {
-            Endianness.Big => "WriteBigEndian",
-            Endianness.Little => "WriteLittleEndian",
-            Endianness.Default => IsDefaultLE ? "WriteLittleEndian" : "WriteBigEndian",
+            Endianness.Big => "TryWriteIBinaryIntegerLE",
+            Endianness.Little => "TryWriteIBinaryIntegerBE",
+            Endianness.Default => IsDefaultLE ? "TryWriteIBinaryIntegerLE" : "TryWriteIBinaryIntegerBE",
             _ => throw new ArgumentException("Invalid endianness value", nameof(endianness)),
         };
 
-        var interfaces = type.GetInterfaces();
-        var bi = interfaces.FirstOrDefault(p => p.FullName is not null && p.FullName.Contains("System.Numerics.IBinaryInteger"));
+        var bi = type.GetInterfaces().FirstOrDefault(p => p.FullName is not null && p.FullName.Contains("System.Numerics.IBinaryInteger"));
         if (bi is null)
             return -1;
 
@@ -140,15 +139,19 @@ public static class Bytes
             if (result.Length < byteCount)
                 return -1;
 
-            byte[] arr = new byte[byteCount];
-            int r = (int)bi.GetMethod(mname, new Type[] { typeof(byte[]) })!.Invoke(data, new object[] { arr })!;
+            var parm = new object[] { data, new SizedPointer<byte>(result), null! };
+            var res = (bool)typeof(Bytes).GetMethod(mname, BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(type)!.Invoke(null, parm)!;
 
-            arr.AsSpan()[..r].CopyTo(result);
-            return r;
+            return res ? (int)parm[2] : -1;
         }
         catch
         {
             return -1;
         }
     }
+
+    private static bool TryWriteIBinaryIntegerLE<T>(T value, SizedPointer<byte> ptr, out int bytesWritten) where T : IBinaryInteger<T>
+        => value.TryWriteLittleEndian(ptr.Span, out bytesWritten);
+    private static bool TryWriteIBinaryIntegerBE<T>(T value, SizedPointer<byte> ptr, out int bytesWritten) where T : IBinaryInteger<T>
+        => value.TryWriteBigEndian(ptr.Span, out bytesWritten);
 }
