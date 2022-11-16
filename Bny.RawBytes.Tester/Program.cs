@@ -12,15 +12,13 @@ record BinaryTest(int Width, int Height) : IBinaryObject<BinaryTest>
 {
     public int WriteSize => 8;
 
-    public static bool TryReadFromBinary(ReadOnlySpan<byte> data, [NotNullWhen(true)] out BinaryTest? result, out int readedBytes, Endianness endianness = Endianness.Default)
+    public static int TryReadFromBinary(ReadOnlySpan<byte> data, out BinaryTest? result, Endianness endianness = Endianness.Default)
     {
-        readedBytes = 0;
         result = null;
         if (data.Length < 8)
-            return false;
+            return -1;
         result = new(Bytes.To<int>(data[..4], endianness), Bytes.To<int>(data[4..], endianness));
-        readedBytes = 8;
-        return true;
+        return 8;
     }
 
     public int TryWriteToBinary(Span<byte> data, Endianness endianness)

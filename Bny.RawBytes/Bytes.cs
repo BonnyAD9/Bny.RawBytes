@@ -70,14 +70,14 @@ public static class Bytes
     public static object To(ReadOnlySpan<byte> data, Type type, out int readedBytes, Endianness endianness = Endianness.Default, bool? signed = null)
     {
         object? res;
-        if (TryReadIBinaryObject(data, out res, type, out readedBytes, endianness))
-            return res;
-        if (TryReadIBinaryInteger(data, out res, type, out readedBytes, endianness, signed))
-            return res;
+        if ((readedBytes = TryReadIBinaryObject(data, out res, type, endianness)) >= 0)
+            return res!;
+        if ((readedBytes = TryReadIBinaryInteger(data, out res, type, endianness, signed)) >= 0)
+            return res!;
         throw new ArgumentException("Cannot convert to this value type", nameof(type));
     }
 
-    private static bool TryReadIBinaryInteger(ReadOnlySpan<byte> data, [NotNullWhen(true)] out object? result, Type type, out int readedBytes, Endianness endianness, bool? signed)
+    private static int TryReadIBinaryInteger(ReadOnlySpan<byte> data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness, bool? signed)
     {
         result = null;
         string mname = endianness switch
@@ -88,12 +88,10 @@ public static class Bytes
             _ => throw new ArgumentException("Invalid endianness value", nameof(endianness)),
         };
 
-        readedBytes = 0;
-
         // check whether the type implements the IBinaryInteger interface
         var interfaces = type.GetInterfaces();
         if (!interfaces.Any(p => p.FullName is not null && p.FullName.Contains("System.Numerics.IBinaryInteger")))
-            return false;
+            return -1;
 
         // if the signed value is not set, set it based on whether the type implements ISignedNumber
         bool isUnsigned = signed.HasValue ? !signed.Value : !interfaces.Any(p => p.FullName is not null && p.FullName.Contains("System.Numerics.ISignedNumber"));
@@ -102,26 +100,24 @@ public static class Bytes
         var parm = new object[] { new SizedPointer<byte>(data), isUnsigned, null! };
         var res = (bool)typeof(Bytes).GetMethod(mname, BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(type)!.Invoke(null, parm)!;
         result = parm[2];
-        res = res && result is not null;
-        readedBytes = res ? data.Length : 0;
-        return res;
+        res = result is not null;
+        return res ? data.Length : -1;
     }
 
-    private static bool TryReadIBinaryObject(ReadOnlySpan<byte> data, [NotNullWhen(true)] out object? result, Type type, out int readedBytes, Endianness endianness)
+    private static int TryReadIBinaryObject(ReadOnlySpan<byte> data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness)
     {
         result = null;
-        readedBytes = 0;
 
         // check whether the type implements the IBinaryObject interface
         if (!type.GetInterfaces().Any(p => p.FullName is not null && p.FullName.Contains("Bny.RawBytes.IBinaryObject")))
-            return false;
+            return -1;
 
         // use reflection to call the generic wrapper
-        var parm = new object[] { new SizedPointer<byte>(data), null!, null!, endianness };
-        var ret = (bool)typeof(Bytes).GetMethod("_TryReadIBinaryObject", BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(type)!.Invoke(null, parm)!;
+        var parm = new object[] { new SizedPointer<byte>(data), null!, endianness };
+        var ret = (int)typeof(Bytes).GetMethod("_TryReadIBinaryObject", BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(type)!.Invoke(null, parm)!;
         result = parm[1];
-        readedBytes = (int)parm[2];
-        return ret && result is not null;
+        ret = result is null && ret >= 0 ? -1 : ret;
+        return ret;
     }
 
     // Wrappers for IBinaryInteger TryRead methods with SizedPointer as parameter instead of Span
@@ -131,8 +127,8 @@ public static class Bytes
         => T.TryReadBigEndian(ptr, isUnsigned, out result);
 
     // Wrapper for IBinaryObject TryRead method
-    private static bool _TryReadIBinaryObject<T>(SizedPointer<byte> ptr, out T? result, out int readedBytes, Endianness endianness) where T : IBinaryObject<T>
-        => T.TryReadFromBinary(ptr, out result, out readedBytes, endianness);
+    private static int _TryReadIBinaryObject<T>(SizedPointer<byte> ptr, out T? result, Endianness endianness) where T : IBinaryObject<T>
+        => T.TryReadFromBinary(ptr, out result, endianness);
 
     /// <summary>
     /// Converts the value into byte array
