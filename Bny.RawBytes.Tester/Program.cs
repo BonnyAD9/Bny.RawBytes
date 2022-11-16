@@ -1,9 +1,5 @@
 ﻿using Bny.RawBytes;
-using System.Numerics;
 
-var arr = new byte[4];
+var arr = new byte[] { 1, 0, 0, 0 };
 
-Bytes.From<ushort>(512, arr);
-
-foreach (var b in arr)
-    Console.WriteLine(b);
+Console.WriteLine(Bytes.To<int>(arr));
