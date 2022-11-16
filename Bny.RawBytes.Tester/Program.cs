@@ -1,8 +1,32 @@
 ﻿using Bny.RawBytes;
+using System.Diagnostics.CodeAnalysis;
 
-var arr = new byte[4];
+var arr = new byte[] { 255, 255, 255, 255, 0, 2, 0, 0 };
+Console.WriteLine(Bytes.To<BinaryTest>(arr));
 
-Bytes.From<ushort>(512, arr);
+Bytes.From(new BinaryTest(512, -1), arr);
+foreach (var i in arr)
+    Console.WriteLine(i);
 
-foreach (var b in arr)
-    Console.WriteLine(b);
+record BinaryTest(int Width, int Height) : IBinaryObject<BinaryTest>
+{
+    public static bool TryReadFromBinary(ReadOnlySpan<byte> data, [NotNullWhen(true)] out BinaryTest? result, Endianness endianness = Endianness.Default)
+    {
+        result = null;
+        if (data.Length < 8)
+            return false;
+        result = new(Bytes.To<int>(data[..4], endianness), Bytes.To<int>(data[4..], endianness));
+        return true;
+    }
+
+    public int TryWriteToBinary(Span<byte> data, Endianness endianness)
+    {
+        if (data.Length < 8)
+            return -1;
+        Bytes.From(Width, data, endianness);
+        Bytes.From(Height, data[4..], endianness);
+        return 8;
+    }
+
+    public BinaryTest() : this(0, 0) { }
+}

@@ -20,7 +20,8 @@ internal unsafe readonly struct SizedPointer<T>
             Ptr = ptr;
     }
 
-    public Span<T> Span => new(Ptr, Size);
+    public static implicit operator Span<T>(SizedPointer<T> ptr) => new(ptr.Ptr, ptr.Size);
+    public static implicit operator ReadOnlySpan<T>(SizedPointer<T> ptr) => new(ptr.Ptr, ptr.Size);
 }
 
 #pragma warning restore CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
