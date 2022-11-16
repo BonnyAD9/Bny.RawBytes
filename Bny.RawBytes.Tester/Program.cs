@@ -1,40 +1,19 @@
 ﻿using Bny.RawBytes;
 
 var arr = new byte[] { 255, 255, 255, 255, 0, 2, 0, 0 };
-var s = new MemoryStream(arr);
-Console.WriteLine(Bytes.To<BinaryTest>(s));
 
-s.Position = 0;
-Bytes.From(new BinaryTest(512, -1), s);
-foreach (var i in arr)
-    Console.WriteLine(i);
+var res = Bytes.To<BinaryTest>(arr);
 
-s.Position = 0;
-Console.WriteLine(Bytes.From(-1, s));
-Console.WriteLine("Hm");
-foreach (var i in arr)
-    Console.WriteLine(i);
+Console.WriteLine(res);
 
-record BinaryTest(int Width, int Height) : IBinaryObject<BinaryTest>
+[BinaryObject]
+class BinaryTest
 {
-    public static int ReadSize => 8;
-    public int WriteSize => ReadSize;
+    [BinaryMember]
+    public int Width { get; init; }
 
-    public static int TryReadFromBinary(ReadOnlySpan<byte> data, out BinaryTest? result, Endianness endianness = Endianness.Default)
-    {
-        result = null;
-        if (data.Length < 8)
-            return -1;
-        result = new(Bytes.To<int>(data[..4], endianness), Bytes.To<int>(data[4..], endianness));
-        return 8;
-    }
+    [BinaryMember]
+    public int Height { get; init; }
 
-    public int TryWriteToBinary(Span<byte> data, Endianness endianness)
-    {
-        if (data.Length < 8)
-            return -1;
-        Bytes.From(Width, data, endianness);
-        Bytes.From(Height, data[4..], endianness);
-        return 8;
-    }
+    public override string ToString() => $"[{Width} {Height}]";
 }

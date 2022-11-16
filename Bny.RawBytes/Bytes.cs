@@ -1,8 +1,10 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.NetworkInformation;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Xml.Schema;
 
 namespace Bny.RawBytes;
 
@@ -78,11 +80,67 @@ public static class Bytes
     {
         object? res;
 
+        if ((readedBytes = TryReadBasicSpan(data, out res, type, endianness, signed)) >= 0)
+            return res!;
+        if ((readedBytes = TryReadBinaryObjectAttribute(data, out res, type, endianness)) >= 0)
+            return res!;
         if ((readedBytes = TryReadIBinaryObject(data, out res, type, endianness)) >= 0)
             return res!;
         if ((readedBytes = TryReadIBinaryInteger(data, out res, type, endianness, signed)) >= 0)
             return res!;
         throw new ArgumentException("Cannot convert to this value type", nameof(type));
+    }
+
+    private static int TryReadBinaryObjectAttribute(ReadOnlySpan<byte> data, out object? result, Type type, Endianness endianness)
+    {
+        result = null;
+        var attrib = type.GetCustomAttribute<BinaryObjectAttribute>();
+        if (attrib is null)
+            return -1;
+
+        result = CreateInstance(type);
+        if (result is null)
+            return -1;
+
+        var dend = attrib.Endianness == Endianness.Default ? DefaultEndianness : attrib.Endianness;
+
+        const BindingFlags AllBindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
+
+        Span<(FieldInfo Prop, BinaryMemberAttribute Attrib)> fields = type.GetFields(AllBindingFlags)
+            .Select(p => (p, p.GetCustomAttribute<BinaryMemberAttribute>()!))
+            .Where(p => p.Item2 is not null).OrderBy(p => p.Item2.Order).ToArray().AsSpan();
+
+        Span<(PropertyInfo Prop, BinaryMemberAttribute Attrib)> props = type.GetProperties(AllBindingFlags)
+            .Select(p => (p, p.GetCustomAttribute<BinaryMemberAttribute>()!))
+            .Where(p => p.Item2 is not null).OrderBy(p => p.Item2.Order).ToArray().AsSpan();
+
+        int totalReaded = 0;
+
+        while (fields.Length > 0 || props.Length > 0)
+        {
+            if (props.Length == 0 || (fields.Length > 0 && fields[0].Attrib.Order < props[0].Attrib.Order))
+            {
+                (var field, var attr) = fields[0];
+                fields = fields[1..];
+
+                var end = attr.Endianness == Endianness.Default ? dend : attr.Endianness;
+                field.SetValue(result, To(data, field.FieldType, out int rb, end));
+                data = data[rb..];
+                totalReaded += rb;
+            }
+            else
+            {
+                (var prop, var attr) = props[0];
+                props = props[1..];
+
+                var end = attr.Endianness == Endianness.Default ? dend : attr.Endianness;
+                prop.SetValue(result, To(data, prop.PropertyType, out int rb, end));
+                data = data[rb..];
+                totalReaded += rb;
+            }
+        }
+
+        return totalReaded;
     }
 
     private static int TryReadIBinaryInteger(ReadOnlySpan<byte> data, out object? result, Type type, Endianness endianness, bool? signed)
@@ -217,6 +275,51 @@ public static class Bytes
                 return false;
         };
     }
+    private static int TryReadBasicSpan(ReadOnlySpan<byte> data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness, bool? signed = null)
+    {
+        result = CreateInstance(type);
+        if (result is null)
+            return -1;
+
+        int ret;
+        switch (result)
+        {
+            case sbyte n:
+                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? true);
+                result = n;
+                return ret;
+            case byte n:
+                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? false);
+                result = n;
+                return ret;
+            case short n:
+                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? true);
+                result = n;
+                return ret;
+            case ushort n:
+                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? false);
+                result = n;
+                return ret;
+            case int n:
+                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? true);
+                result = n;
+                return ret;
+            case uint n:
+                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? false);
+                result = n;
+                return ret;
+            case long n:
+                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? true);
+                result = n;
+                return ret;
+            case ulong n:
+                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? false);
+                result = n;
+                return ret;
+            default:
+                return -1;
+        };
+    }
 
     // Wrappers for IBinaryInteger TryRead methods with SizedPointer as parameter instead of Span
     private static bool _TryReadIBinaryIntegerLE<T>(SizedPointer<byte> ptr, bool isUnsigned, out T result) where T : IBinaryInteger<T>
@@ -230,20 +333,30 @@ public static class Bytes
     private static bool _TryReadIBinaryObjectS<T>(Stream str, out T? result, Endianness endianness) where T : IBinaryObject<T>
         => T.TryReadFromBinary(str, out result, endianness);
 
-    private static bool TryReadIBinaryIntegerStream<T>(Stream str, [NotNullWhen(true)] out T? result, Endianness endianness, bool signed) where T : IBinaryInteger<T>
+    private static int TryReadIBinaryIntegerSpan<T>(ReadOnlySpan<byte> span, [NotNullWhen(true)] out T? result, Endianness endianness, bool signed) where T : IBinaryInteger<T>
     {
         result = default;
+        int size = Marshal.SizeOf<T>();
+        span = span[..size];
+
+        if (endianness switch
+        {
+            Endianness.Big => T.TryReadBigEndian(span, !signed, out result),
+            Endianness.Little => T.TryReadLittleEndian(span, !signed, out result),
+            Endianness.Default => IsDefaultLE ? T.TryReadLittleEndian(span, !signed, out result) : T.TryReadBigEndian(span, !signed, out result),
+            _ => false,
+        })
+            return size;
+        return -1;
+    }
+
+    private static bool TryReadIBinaryIntegerStream<T>(Stream str, [NotNullWhen(true)] out T? result, Endianness endianness, bool signed) where T : IBinaryInteger<T>
+    {
         int size = Marshal.SizeOf<T>();
         Span<byte> buffer = stackalloc byte[size];
         str.Read(buffer);
 
-        return endianness switch
-        {
-            Endianness.Big => T.TryReadBigEndian(buffer, !signed, out result),
-            Endianness.Little => T.TryReadLittleEndian(buffer, !signed, out result),
-            Endianness.Default => IsDefaultLE ? T.TryReadLittleEndian(buffer, !signed, out result) : T.TryReadBigEndian(buffer, !signed, out result),
-            _ => false,
-        };
+        return TryReadIBinaryIntegerSpan(buffer, out result, endianness, signed) >= 0;
     }
 
     /// <summary>
