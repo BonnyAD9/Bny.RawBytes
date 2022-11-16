@@ -12,4 +12,9 @@ public interface IBinaryObjectWrite
     /// <param name="endianness">Preferred endianness or default</param>
     /// <returns>number of written bytes on success, otherwise negative</returns>
     public int TryWriteToBinary(Span<byte> data, Endianness endianness);
+
+    /// <summary>
+    /// The number of bytes that would be written by TryWriteToBinary
+    /// </summary>
+    public int WriteSize { get; }
 }

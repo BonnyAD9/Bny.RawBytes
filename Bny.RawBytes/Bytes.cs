@@ -1,9 +1,6 @@
-﻿using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace Bny.RawBytes;
 
@@ -39,6 +36,18 @@ public static class Bytes
     /// <summary>
     /// Converts byte array to the given type
     /// </summary>
+    /// <typeparam name="T">Type to convert to</typeparam>
+    /// <param name="data">Bytes to convert</param>
+    /// <param name="readedBytes">number of bytes readed</param>
+    /// <param name="endianness">byte order</param>
+    /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type</param>
+    /// <returns>The byte span converted to the type</returns>
+    public static T To<T>(ReadOnlySpan<byte> data, out int readedBytes, Endianness endianness = Endianness.Default, bool? signed = null) where T : new()
+        => (T)To(data, typeof(T), out readedBytes, endianness, signed);
+
+    /// <summary>
+    /// Converts byte array to the given type
+    /// </summary>
     /// <param name="data">Bytes to convert</param>
     /// <param name="type">Type to convert to</param>
     /// <param name="endianness">byte order</param>
@@ -46,16 +55,29 @@ public static class Bytes
     /// <returns>The byte span converted to the type</returns>
     /// <exception cref="ArgumentException">Thrown for unsuported types</exception>
     public static object To(ReadOnlySpan<byte> data, Type type, Endianness endianness = Endianness.Default, bool? signed = null)
+        => To(data, type, out _, endianness, signed);
+
+    /// <summary>
+    /// Converts byte array to the given type
+    /// </summary>
+    /// <param name="data">Bytes to convert</param>
+    /// <param name="type">Type to convert to</param>
+    /// <param name="readedBytes">number of bytes readed</param>
+    /// <param name="endianness">byte order</param>
+    /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type, some types might ignore this</param>
+    /// <returns>The byte span converted to the type</returns>
+    /// <exception cref="ArgumentException">Thrown for unsuported types</exception>
+    public static object To(ReadOnlySpan<byte> data, Type type, out int readedBytes, Endianness endianness = Endianness.Default, bool? signed = null)
     {
         object? res;
-        if (TryReadIBinaryObject(data, out res, type, endianness))
+        if (TryReadIBinaryObject(data, out res, type, out readedBytes, endianness))
             return res;
-        if (TryReadIBinaryInteger(data, out res, type, endianness, signed))
+        if (TryReadIBinaryInteger(data, out res, type, out readedBytes, endianness, signed))
             return res;
         throw new ArgumentException("Cannot convert to this value type", nameof(type));
     }
 
-    private static bool TryReadIBinaryInteger(ReadOnlySpan<byte> data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness, bool? signed)
+    private static bool TryReadIBinaryInteger(ReadOnlySpan<byte> data, [NotNullWhen(true)] out object? result, Type type, out int readedBytes, Endianness endianness, bool? signed)
     {
         result = null;
         string mname = endianness switch
@@ -65,6 +87,8 @@ public static class Bytes
             Endianness.Default => IsDefaultLE ? "_TryReadIBinaryIntegerLE" : "_TryReadIBinaryIntegerBE",
             _ => throw new ArgumentException("Invalid endianness value", nameof(endianness)),
         };
+
+        readedBytes = 0;
 
         // check whether the type implements the IBinaryInteger interface
         var interfaces = type.GetInterfaces();
@@ -78,21 +102,25 @@ public static class Bytes
         var parm = new object[] { new SizedPointer<byte>(data), isUnsigned, null! };
         var res = (bool)typeof(Bytes).GetMethod(mname, BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(type)!.Invoke(null, parm)!;
         result = parm[2];
-        return res && result is not null;
+        res = res && result is not null;
+        readedBytes = res ? data.Length : 0;
+        return res;
     }
 
-    private static bool TryReadIBinaryObject(ReadOnlySpan<byte> data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness)
+    private static bool TryReadIBinaryObject(ReadOnlySpan<byte> data, [NotNullWhen(true)] out object? result, Type type, out int readedBytes, Endianness endianness)
     {
         result = null;
+        readedBytes = 0;
 
         // check whether the type implements the IBinaryObject interface
         if (!type.GetInterfaces().Any(p => p.FullName is not null && p.FullName.Contains("Bny.RawBytes.IBinaryObject")))
             return false;
 
         // use reflection to call the generic wrapper
-        var parm = new object[] { new SizedPointer<byte>(data), null!, endianness };
+        var parm = new object[] { new SizedPointer<byte>(data), null!, null!, endianness };
         var ret = (bool)typeof(Bytes).GetMethod("_TryReadIBinaryObject", BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(type)!.Invoke(null, parm)!;
         result = parm[1];
+        readedBytes = (int)parm[2];
         return ret && result is not null;
     }
 
@@ -103,8 +131,8 @@ public static class Bytes
         => T.TryReadBigEndian(ptr, isUnsigned, out result);
 
     // Wrapper for IBinaryObject TryRead method
-    private static bool _TryReadIBinaryObject<T>(SizedPointer<byte> ptr, out T? result, Endianness endianness) where T : IBinaryObject<T>
-        => T.TryReadFromBinary(ptr, out result, endianness);
+    private static bool _TryReadIBinaryObject<T>(SizedPointer<byte> ptr, out T? result, out int readedBytes, Endianness endianness) where T : IBinaryObject<T>
+        => T.TryReadFromBinary(ptr, out result, out readedBytes, endianness);
 
     /// <summary>
     /// Converts the value into byte array

@@ -10,12 +10,16 @@ foreach (var i in arr)
 
 record BinaryTest(int Width, int Height) : IBinaryObject<BinaryTest>
 {
-    public static bool TryReadFromBinary(ReadOnlySpan<byte> data, [NotNullWhen(true)] out BinaryTest? result, Endianness endianness = Endianness.Default)
+    public int WriteSize => 8;
+
+    public static bool TryReadFromBinary(ReadOnlySpan<byte> data, [NotNullWhen(true)] out BinaryTest? result, out int readedBytes, Endianness endianness = Endianness.Default)
     {
+        readedBytes = 0;
         result = null;
         if (data.Length < 8)
             return false;
         result = new(Bytes.To<int>(data[..4], endianness), Bytes.To<int>(data[4..], endianness));
+        readedBytes = 8;
         return true;
     }
 
