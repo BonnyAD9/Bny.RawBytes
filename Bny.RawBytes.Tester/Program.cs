@@ -1,10 +1,11 @@
 ﻿using Bny.RawBytes;
 
 var arr = new byte[] { 255, 255, 255, 255, 0, 2, 0, 0 };
-Stream s = new MemoryStream(arr);
+var s = new MemoryStream(arr);
 Console.WriteLine(Bytes.To<BinaryTest>(s));
 
-Bytes.From(new BinaryTest(512, -1), arr);
+s.Position = 0;
+Bytes.From(new BinaryTest(512, -1), s);
 foreach (var i in arr)
     Console.WriteLine(i);
 

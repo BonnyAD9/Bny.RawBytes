@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Net.NetworkInformation;
 using System.Numerics;
 using System.Reflection;
 
@@ -239,6 +240,54 @@ public static class Bytes
         {
             return -1;
         }
+    }
+
+    /// <summary>
+    /// Converts the value into bytes and writes it to a stream
+    /// </summary>
+    /// <typeparam name="T">Type of the value to convert</typeparam>
+    /// <param name="value">vylue to convert</param>
+    /// <param name="output">Where the bytes will be written</param>
+    /// <param name="endianness">Byte order of the conversion</param>
+    /// <returns>the converted value</returns>
+    /// <exception cref="ArgumentException">thrown for unsupported types</exception>
+    public static bool From<T>(T value, Stream output, Endianness endianness = Endianness.Default)
+        => From(value, output, typeof(T), endianness);
+
+    /// <summary>
+    /// Converts the value into bytes and writes it to a stream
+    /// </summary>
+    /// <param name="value">vylue to convert</param>
+    /// <param name="output">Where the bytes will be written</param>
+    /// <param name="type">Type of the value to convert</param>
+    /// <param name="endianness">Byte order of the conversion</param>
+    /// <returns>the converted value</returns>
+    /// <exception cref="ArgumentException">thrown for unsupported types</exception>
+    public static bool From(object value, Stream output, Type type, Endianness endianness = Endianness.Default)
+    {
+        int size = -1;
+        byte[] buffer;
+
+        if (value is IBinaryObjectWrite bow)
+        {
+            size = bow.WriteSize;
+            buffer = new byte[size];
+            bow.TryWriteToBinary(buffer, endianness);
+            output.Write(buffer);
+            return true;
+        }
+
+        var interfaces = type.GetInterfaces();
+
+        var intf = interfaces.FirstOrDefault(p => p.FullName is not null && p.FullName.Contains("System.Numerics.IBinaryInteger"));
+        if (intf is not null)
+            size = (int)intf.GetMethod("GetByteCount")!.Invoke(value, Array.Empty<object>())!;
+
+        if (size == -1)
+            return false;
+
+        buffer = new byte[size];
+        return From(value, buffer, type, endianness) >= 0;
     }
 
     private static bool _TryWriteIBinaryIntegerLE<T>(T value, SizedPointer<byte> ptr, out int bytesWritten) where T : IBinaryInteger<T>
