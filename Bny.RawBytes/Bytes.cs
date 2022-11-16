@@ -70,6 +70,7 @@ public static class Bytes
     public static object To(ReadOnlySpan<byte> data, Type type, out int readedBytes, Endianness endianness = Endianness.Default, bool? signed = null)
     {
         object? res;
+
         if ((readedBytes = TryReadIBinaryObject(data, out res, type, endianness)) >= 0)
             return res!;
         if ((readedBytes = TryReadIBinaryInteger(data, out res, type, endianness, signed)) >= 0)
@@ -77,7 +78,7 @@ public static class Bytes
         throw new ArgumentException("Cannot convert to this value type", nameof(type));
     }
 
-    private static int TryReadIBinaryInteger(ReadOnlySpan<byte> data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness, bool? signed)
+    private static int TryReadIBinaryInteger(ReadOnlySpan<byte> data, out object? result, Type type, Endianness endianness, bool? signed)
     {
         result = null;
         string mname = endianness switch
@@ -100,11 +101,11 @@ public static class Bytes
         var parm = new object[] { new SizedPointer<byte>(data), isUnsigned, null! };
         var res = (bool)typeof(Bytes).GetMethod(mname, BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(type)!.Invoke(null, parm)!;
         result = parm[2];
-        res = result is not null;
+        res = res && result is not null;
         return res ? data.Length : -1;
     }
 
-    private static int TryReadIBinaryObject(ReadOnlySpan<byte> data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness)
+    private static int TryReadIBinaryObject(ReadOnlySpan<byte> data, out object? result, Type type, Endianness endianness)
     {
         result = null;
 
@@ -120,15 +121,59 @@ public static class Bytes
         return ret;
     }
 
+    /// <summary>
+    /// Reads the given type from the given stream
+    /// </summary>
+    /// <typeparam name="T">type to convert to</typeparam>
+    /// <param name="data">Stream to read from</param>
+    /// <param name="endianness">byte order</param>
+    /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type, some types might ignore this</param>
+    /// <returns>The byte span converted to the type</returns>
+    /// <exception cref="ArgumentException">Thrown for unsuported types</exception>
+    public static T To<T>(Stream data, Endianness endianness = Endianness.Default, bool? signed = null)
+        => (T)To(data, typeof(T), endianness, signed);
+
+    /// <summary>
+    /// Reads the given type from the given stream
+    /// </summary>
+    /// <param name="data">Stream to read from</param>
+    /// <param name="type">Type to convert to</param>
+    /// <param name="endianness">byte order</param>
+    /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type, some types might ignore this</param>
+    /// <returns>The byte span converted to the type</returns>
+    /// <exception cref="ArgumentException">Thrown for unsuported types</exception>
+    public static object To(Stream data, Type type, Endianness endianness = Endianness.Default, bool? signed = null)
+    {
+        object? obj;
+        if (TryReadIBinaryObject(data, out obj, type, endianness))
+            return obj;
+        throw new ArgumentException("Cannot convert to this value type from stream", nameof(type));
+    }
+
+    private static bool TryReadIBinaryObject(Stream data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness)
+    {
+        result = null;
+
+        if (!type.GetInterfaces().Any(p => p.FullName is not null && p.FullName.Contains("Bny.RawBytes.IBinaryObject")))
+            return false;
+
+        var parm = new object[] { data, null!, endianness };
+        var ret = (bool)typeof(Bytes).GetMethod("_TryReadIBinaryObjectS", BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(type)!.Invoke(null, parm)!;
+        result = parm[1];
+        return ret && result is not null;
+    }
+
     // Wrappers for IBinaryInteger TryRead methods with SizedPointer as parameter instead of Span
     private static bool _TryReadIBinaryIntegerLE<T>(SizedPointer<byte> ptr, bool isUnsigned, out T result) where T : IBinaryInteger<T>
         => T.TryReadLittleEndian(ptr, isUnsigned, out result);
     private static bool _TryReadIBinaryIntegerBE<T>(SizedPointer<byte> ptr, bool isUnsigned, out T result) where T : IBinaryInteger<T>
         => T.TryReadBigEndian(ptr, isUnsigned, out result);
 
-    // Wrapper for IBinaryObject TryRead method
+    // Wrapper for IBinaryObject TryRead methods
     private static int _TryReadIBinaryObject<T>(SizedPointer<byte> ptr, out T? result, Endianness endianness) where T : IBinaryObject<T>
         => T.TryReadFromBinary(ptr, out result, endianness);
+    private static bool _TryReadIBinaryObjectS<T>(Stream str, out T? result, Endianness endianness) where T : IBinaryObject<T>
+        => T.TryReadFromBinary(str, out result, endianness);
 
     /// <summary>
     /// Converts the value into byte array

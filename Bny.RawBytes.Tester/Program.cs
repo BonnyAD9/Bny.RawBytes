@@ -1,7 +1,8 @@
 ﻿using Bny.RawBytes;
 
 var arr = new byte[] { 255, 255, 255, 255, 0, 2, 0, 0 };
-Console.WriteLine(Bytes.To<BinaryTest>(arr));
+Stream s = new MemoryStream(arr);
+Console.WriteLine(Bytes.To<BinaryTest>(s));
 
 Bytes.From(new BinaryTest(512, -1), arr);
 foreach (var i in arr)
@@ -9,7 +10,8 @@ foreach (var i in arr)
 
 record BinaryTest(int Width, int Height) : IBinaryObject<BinaryTest>
 {
-    public int WriteSize => 8;
+    public static int ReadSize => 8;
+    public int WriteSize => ReadSize;
 
     public static int TryReadFromBinary(ReadOnlySpan<byte> data, out BinaryTest? result, Endianness endianness = Endianness.Default)
     {
@@ -28,6 +30,4 @@ record BinaryTest(int Width, int Height) : IBinaryObject<BinaryTest>
         Bytes.From(Height, data[4..], endianness);
         return 8;
     }
-
-    public BinaryTest() : this(0, 0) { }
 }
