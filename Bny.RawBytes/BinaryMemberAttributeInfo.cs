@@ -26,4 +26,13 @@ internal class BinaryMemberAttributeInfo
 
     public object? GetValue(object? instance) => _getValue(instance);
     public void SetValue(object? instance, object? value) => _setValue(instance, value);
+
+    public BytesParam CreatePar(BytesParam par) => par with
+    {
+        Type = MemberType,
+        Endianness = par.GetEndiannessTo(Attrib.Endianness),
+        Sign = Attrib.Signed,
+        Encoding = Attrib.Encoding ?? par.Encoding,
+        NullTerminated = Attrib.NullTerminated,
+    };
 }

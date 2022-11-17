@@ -20,6 +20,7 @@ public class NetBinaryEncoding : BinaryEncoding
     public NetBinaryEncoding(EncodingInfo encodingInfo)
     {
         Encoding = encodingInfo;
+        Init();
     }
 
     /// <inheritdoc/>

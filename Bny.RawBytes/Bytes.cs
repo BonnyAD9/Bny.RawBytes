@@ -124,7 +124,10 @@ public static class Bytes
     private static int TryReadBasicSpan(ReadOnlySpan<byte> data, [NotNullWhen(true)] out object? result, BytesParam par)
     {
         if (par.Type == typeof(string))
-            return (result = par.GetString(data)) is null ? -1 : data.Length;
+        {
+            result = par.GetString(data, out var br);
+            return result is null ? -1 : br;
+        }
 
         result = par.CreateInstance();
         if (result is null)
@@ -173,7 +176,7 @@ public static class Bytes
     private static int TryReadBinaryObjectAttribute(ReadOnlySpan<byte> data, out object? result, BytesParam par)
     {
         result = null;
-        if (!TryExtractAttribute(par, out var attrib, out var endianness, out var members))
+        if (!TryExtractAttribute(par, out var attrib, out var members, out var objPar))
             return -1;
 
         result = par.CreateInstance();
@@ -184,8 +187,6 @@ public static class Bytes
 
         foreach (var m in members)
         {
-            var end = m.Attrib.Endianness == Endianness.Default ? endianness : m.Attrib.Endianness;
-
             var d = data;
             if (m.Attrib.Size >= 0)
             {
@@ -194,7 +195,7 @@ public static class Bytes
                 d = d[..m.Attrib.Size];
             }
 
-            int rb = TryTo(d, out var res, par with { Endianness = end, Sign = m.Attrib.Signed, Type = m.MemberType });
+            int rb = TryTo(d, out var res, m.CreatePar(objPar));
             if (rb < 0)
                 return -1;
 
@@ -314,6 +315,12 @@ public static class Bytes
 
     private static bool TryReadBasicStream(Stream data, [NotNullWhen(true)] out object? result, BytesParam par)
     {
+        if (par.Type == typeof(string))
+        {
+            result = par.GetString(data);
+            return result is not null;
+        }
+
         result = par.CreateInstance();
         if (result is null)
             return false;
@@ -361,7 +368,7 @@ public static class Bytes
     private static bool TryReadBinaryObjectAttribute(Stream data, [NotNullWhen(true)] out object? result, BytesParam par)
     {
         result = null;
-        if (!TryExtractAttribute(par, out var attrib, out var endianness, out var membs))
+        if (!TryExtractAttribute(par, out var attrib, out var membs, out var objPar))
             return false;
 
         result = par.CreateInstance();
@@ -370,20 +377,18 @@ public static class Bytes
 
         foreach (var m in membs)
         {
-            var end = m.Attrib.Endianness == Endianness.Default ? endianness : m.Attrib.Endianness;
-
             object? res;
             if (m.Attrib.Size >= 0)
             {
                 Span<byte> buffer = new byte[m.Attrib.Size];
                 if (data.Read(buffer) != buffer.Length)
                     return false;
-                if (TryTo(buffer, out res, par with { Type = m.MemberType, Endianness = end, Sign = m.Attrib.Signed }) < 0)
+                if (TryTo(buffer, out res, m.CreatePar(objPar)) < 0)
                     return false;
             }
             else
             {
-                if (!TryTo(data, out res, par with { Type = m.MemberType, Endianness = end, Sign = m.Attrib.Signed }))
+                if (!TryTo(data, out res, m.CreatePar(objPar)))
                     return false;
             }
 
@@ -503,6 +508,8 @@ public static class Bytes
         if (value is null)
             return -1;
         int len;
+        if ((len = TryWriteBasicSpan(value, result, par)) >= 0)
+            return len;
         if ((len = TryWriteBinaryAttribute(value, result, par)) >= 0)
             return len;
         if ((len = TryWriteIBinaryObjectWrite(value, result, par)) >= 0)
@@ -512,16 +519,23 @@ public static class Bytes
         return -1;
     }
 
+    private static int TryWriteBasicSpan(object? value, Span<byte> result, BytesParam par)
+    {
+        if (value is not string str)
+            return -1;
+
+        return par.GetBytes(str, result);
+    }
+
     private static int TryWriteBinaryAttribute(object value, Span<byte> result, BytesParam par)
     {
-        if (!TryExtractAttribute(par, out var attrib, out var endianness, out var members))
+        if (!TryExtractAttribute(par, out var attrib, out var members, out var objPar))
             return -1;
 
         int bytesWritten = 0;
         foreach (var m in members)
         {
-            var end = m.Attrib.Endianness == Endianness.Default ? endianness : m.Attrib.Endianness;
-            var wb = TryFrom_(m.GetValue(value)!, result, par with { Type = m.MemberType, Endianness = end });
+            var wb = TryFrom_(m.GetValue(value)!, result, m.CreatePar(objPar));
             if (wb < 0)
                 return -1;
             result = result[wb..];
@@ -622,6 +636,8 @@ public static class Bytes
     {
         if (value is null)
             return false;
+        if (TryWriteBasicStream(value, output, par))
+            return true;
         if (TryWriteBinaryObjectAttribute(value, output, par))
             return true;
         if (TryWriteIBinaryObjectWrite(value, output, par))
@@ -631,15 +647,22 @@ public static class Bytes
         return false;
     }
 
+    private static bool TryWriteBasicStream(object? value, Stream output, BytesParam par)
+    {
+        if (value is not string str)
+            return false;
+
+        return par.GetBytes(str, output);
+    }
+
     private static bool TryWriteBinaryObjectAttribute(object value, Stream output, BytesParam par)
     {
-        if (!TryExtractAttribute(par, out var attrib, out var endianness, out var members))
+        if (!TryExtractAttribute(par, out var attrib, out var members, out var objPar))
             return false;
 
         foreach (var m in members)
         {
-            var end = m.Attrib.Endianness == Endianness.Default ? endianness : m.Attrib.Endianness;
-            if (!TryFrom_(m.GetValue(value)!, output, par with { Type = m.MemberType, Endianness = end }))
+            if (!TryFrom_(m.GetValue(value)!, output, m.CreatePar(objPar)))
                 return false;
         }
         return true;
@@ -682,23 +705,26 @@ public static class Bytes
     private static bool TryExtractAttribute(
         BytesParam par,
         [NotNullWhen(true)]out BinaryObjectAttribute? attrib,
-        out Endianness endianness,
-        out Span<BinaryMemberAttributeInfo> members)
+        out Span<BinaryMemberAttributeInfo> members,
+        [NotNullWhen(true)] out BytesParam? typeParam)
     {
+        typeParam = null;
         members = Array.Empty<BinaryMemberAttributeInfo>().AsSpan();
-        endianness = par.Endianness;
 
         attrib = par.Type.GetCustomAttribute<BinaryObjectAttribute>();
         if (attrib is null)
             return false;
-
-        endianness = attrib.Endianness == Endianness.Default ? par.GetEndianness(DefaultEndianness) : attrib.Endianness;
 
         const BindingFlags AllBindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
 
         members = par.Type.GetFields(AllBindingFlags).Select(p => new BinaryMemberAttributeInfo(p))
             .Concat(par.Type.GetProperties(AllBindingFlags).Select(p => new BinaryMemberAttributeInfo(p)))
             .Where(p => p.Attrib is not null).OrderBy(p => p.Attrib.Order).ToArray().AsSpan();
+
+        typeParam = par with
+        {
+            Endianness = attrib.Endianness == Endianness.Default ? par.GetEndianness(DefaultEndianness) : attrib.Endianness,
+        };
 
         return true;
     }
