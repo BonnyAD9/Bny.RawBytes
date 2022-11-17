@@ -1,9 +1,10 @@
 ﻿using Bny.RawBytes;
 
-var arr = new byte[] { 0, 2, 0, 0, 0, 2, 0, 0 };
+var arr = new byte[8];
 
-// convert bytes (arr) to BinaryTest, the default byte order will be big-endian
-Console.WriteLine(Bytes.To<BinaryTest>(arr, Endianness.Big));
+Bytes.From(new BinaryTest() { Width = 512, Height = 131072 }, arr, Endianness.Big);
+foreach (var i in arr)
+    Console.WriteLine(i);
 
 [BinaryObject] // mark this as binary object
 class BinaryTest

@@ -94,25 +94,12 @@ public static class Bytes
     private static int TryReadBinaryObjectAttribute(ReadOnlySpan<byte> data, out object? result, Type type, Endianness endianness)
     {
         result = null;
-        var attrib = type.GetCustomAttribute<BinaryObjectAttribute>();
-        if (attrib is null)
+        if (!TryExtractAttribute(type, out var attrib, ref endianness, out var fields, out var props))
             return -1;
 
         result = CreateInstance(type);
         if (result is null)
             return -1;
-
-        var dend = attrib.Endianness == Endianness.Default ? (endianness == Endianness.Default ? DefaultEndianness : endianness) : attrib.Endianness;
-
-        const BindingFlags AllBindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
-
-        Span<(FieldInfo Prop, BinaryMemberAttribute Attrib)> fields = type.GetFields(AllBindingFlags)
-            .Select(p => (p, p.GetCustomAttribute<BinaryMemberAttribute>()!))
-            .Where(p => p.Item2 is not null).OrderBy(p => p.Item2.Order).ToArray().AsSpan();
-
-        Span<(PropertyInfo Prop, BinaryMemberAttribute Attrib)> props = type.GetProperties(AllBindingFlags)
-            .Select(p => (p, p.GetCustomAttribute<BinaryMemberAttribute>()!))
-            .Where(p => p.Item2 is not null).OrderBy(p => p.Item2.Order).ToArray().AsSpan();
 
         int totalReaded = 0;
 
@@ -123,7 +110,7 @@ public static class Bytes
                 (var field, var attr) = fields[0];
                 fields = fields[1..];
 
-                var end = attr.Endianness == Endianness.Default ? dend : attr.Endianness;
+                var end = attr.Endianness == Endianness.Default ? endianness : attr.Endianness;
                 field.SetValue(result, To(data, field.FieldType, out int rb, end));
                 data = data[rb..];
                 totalReaded += rb;
@@ -133,7 +120,7 @@ public static class Bytes
                 (var prop, var attr) = props[0];
                 props = props[1..];
 
-                var end = attr.Endianness == Endianness.Default ? dend : attr.Endianness;
+                var end = attr.Endianness == Endianness.Default ? endianness : attr.Endianness;
                 prop.SetValue(result, To(data, prop.PropertyType, out int rb, end));
                 data = data[rb..];
                 totalReaded += rb;
@@ -381,6 +368,10 @@ public static class Bytes
     /// <exception cref="ArgumentException">thrown for unsupported types</exception>
     public static int From(object value, Span<byte> result, Type type, Endianness endianness = Endianness.Default)
     {
+        int len;
+        if ((len = TryWriteAttribute(value, result, type, endianness)) >= 0)
+            return len;
+
         if (value is IBinaryObjectWrite bow)
         {
             int count = bow.TryWriteToBinary(result, endianness);
@@ -388,18 +379,50 @@ public static class Bytes
                 return count;
         }
 
-        int len = TryWriteIBinaryInteger(value, result, type, endianness);
-        if (len != -1)
+        if ((len = TryWriteIBinaryInteger(value, result, type, endianness)) >= 0)
             return len;
         throw new ArgumentException("Cannot convert from this value type", nameof(value));
     }
 
-    private static int TryWriteIBinaryInteger(object data, Span<byte> result, Type type, Endianness endianness = Endianness.Default)
+    private static int TryWriteAttribute(object value, Span<byte> result, Type type, Endianness endianness)
+    {
+        if (!TryExtractAttribute(type, out var attrib, ref endianness, out var fields, out var props))
+            return -1;
+
+        int bytesWritten = 0;
+        while (fields.Length > 0 || props.Length > 0)
+        {
+            if (props.Length == 0 || (fields.Length > 0 && fields[0].Attrib.Order < props[0].Attrib.Order))
+            {
+                (var field, var attr) = fields[0];
+                fields = fields[1..];
+
+                var end = attr.Endianness == Endianness.Default ? endianness : attr.Endianness;
+                var wb = From(field.GetValue(value)!, result, field.FieldType, end);
+                result = result[wb..];
+                bytesWritten += wb;
+            }
+            else
+            {
+                (var prop, var attr) = props[0];
+                props = props[1..];
+
+                var end = attr.Endianness == Endianness.Default ? endianness : attr.Endianness;
+                var wb = From(prop.GetValue(value)!, result, prop.PropertyType, end);
+                result = result[wb..];
+                bytesWritten += wb;
+            }
+        }
+
+        return bytesWritten;
+    }
+
+    private static int TryWriteIBinaryInteger(object data, Span<byte> result, Type type, Endianness endianness)
     {
         string mname = endianness switch
         {
-            Endianness.Big => "_TryWriteIBinaryIntegerLE",
-            Endianness.Little => "_TryWriteIBinaryIntegerBE",
+            Endianness.Big => "_TryWriteIBinaryIntegerBE",
+            Endianness.Little => "_TryWriteIBinaryIntegerLE",
             Endianness.Default => IsDefaultLE ? "_TryWriteIBinaryIntegerLE" : "_TryWriteIBinaryIntegerBE",
             _ => throw new ArgumentException("Invalid endianness value", nameof(endianness)),
         };
@@ -435,7 +458,7 @@ public static class Bytes
     /// <returns>the converted value</returns>
     /// <exception cref="ArgumentException">thrown for unsupported types</exception>
     public static bool From<T>(T value, Stream output, Endianness endianness = Endianness.Default)
-        => From(value, output, typeof(T), endianness);
+        => From(value!, output, typeof(T), endianness);
 
     /// <summary>
     /// Converts the value into bytes and writes it to a stream
@@ -492,5 +515,34 @@ public static class Bytes
         {
             return null;
         }
+    }
+
+    private static bool TryExtractAttribute(
+        Type type,
+        [NotNullWhen(true)]out BinaryObjectAttribute? attrib,
+        ref Endianness endianness,
+        out Span<(FieldInfo Prop,BinaryMemberAttribute Attrib)> fields,
+        out Span<(PropertyInfo Prop, BinaryMemberAttribute Attrib)> props)
+    {
+        fields = Array.Empty<(FieldInfo Prop, BinaryMemberAttribute Attrib)>().AsSpan();
+        props = Array.Empty<(PropertyInfo Prop, BinaryMemberAttribute Attrib)>().AsSpan();
+
+        attrib = type.GetCustomAttribute<BinaryObjectAttribute>();
+        if (attrib is null)
+            return false;
+
+        endianness = attrib.Endianness == Endianness.Default ? (endianness == Endianness.Default ? DefaultEndianness : endianness) : attrib.Endianness;
+
+        const BindingFlags AllBindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
+
+        fields = type.GetFields(AllBindingFlags)
+            .Select(p => (p, p.GetCustomAttribute<BinaryMemberAttribute>()!))
+            .Where(p => p.Item2 is not null).OrderBy(p => p.Item2.Order).ToArray().AsSpan();
+
+        props = type.GetProperties(AllBindingFlags)
+            .Select(p => (p, p.GetCustomAttribute<BinaryMemberAttribute>()!))
+            .Where(p => p.Item2 is not null).OrderBy(p => p.Item2.Order).ToArray().AsSpan();
+
+        return true;
     }
 }
