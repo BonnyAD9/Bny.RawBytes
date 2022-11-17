@@ -1,10 +1,7 @@
-﻿using System;
-using System.Diagnostics.CodeAnalysis;
-using System.Net.NetworkInformation;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Xml.Schema;
 
 namespace Bny.RawBytes;
 
@@ -119,9 +116,9 @@ public static class Bytes
         result = null;
         string mname = endianness switch
         {
-            Endianness.Big => "_TryReadIBinaryIntegerLE",
-            Endianness.Little => "_TryReadIBinaryIntegerBE",
-            Endianness.Default => IsDefaultLE ? "_TryReadIBinaryIntegerLE" : "_TryReadIBinaryIntegerBE",
+            Endianness.Big => nameof(_TryReadIBinaryIntegerBE),
+            Endianness.Little => nameof(_TryReadIBinaryIntegerLE),
+            Endianness.Default => IsDefaultLE ? nameof(_TryReadIBinaryIntegerLE) : nameof(_TryReadIBinaryIntegerBE),
             _ => throw new ArgumentException("Invalid endianness value", nameof(endianness)),
         };
 
@@ -151,7 +148,7 @@ public static class Bytes
 
         // use reflection to call the generic wrapper
         var parm = new object[] { new SizedPointer<byte>(data), null!, endianness };
-        var ret = (int)typeof(Bytes).GetMethod("_TryReadIBinaryObject", BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(type)!.Invoke(null, parm)!;
+        var ret = (int)typeof(Bytes).GetMethod(nameof(_TryReadIBinaryObject), BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(type)!.Invoke(null, parm)!;
         result = parm[1];
         ret = result is null && ret >= 0 ? -1 : ret;
         return ret;
@@ -196,7 +193,7 @@ public static class Bytes
             return false;
 
         var parm = new object[] { data, null!, endianness };
-        var ret = (bool)typeof(Bytes).GetMethod("_TryReadIBinaryObjectS", BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(type)!.Invoke(null, parm)!;
+        var ret = (bool)typeof(Bytes).GetMethod(nameof(_TryReadIBinaryObjectS), BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(type)!.Invoke(null, parm)!;
         result = parm[1];
         return ret && result is not null;
     }
@@ -389,9 +386,9 @@ public static class Bytes
     {
         string mname = endianness switch
         {
-            Endianness.Big => "_TryWriteIBinaryIntegerBE",
-            Endianness.Little => "_TryWriteIBinaryIntegerLE",
-            Endianness.Default => IsDefaultLE ? "_TryWriteIBinaryIntegerLE" : "_TryWriteIBinaryIntegerBE",
+            Endianness.Big => nameof(_TryWriteIBinaryIntegerBE),
+            Endianness.Little => nameof(_TryWriteIBinaryIntegerLE),
+            Endianness.Default => IsDefaultLE ? nameof(_TryWriteIBinaryIntegerLE) : nameof(_TryWriteIBinaryIntegerBE),
             _ => throw new ArgumentException("Invalid endianness value", nameof(endianness)),
         };
 
@@ -401,7 +398,7 @@ public static class Bytes
 
         try
         {
-            int byteCount = (int)bi.GetMethod("GetByteCount", Array.Empty<Type>())!.Invoke(data, Array.Empty<object>())!;
+            int byteCount = (int)bi.GetMethod(nameof(IBinaryInteger<int>.GetByteCount), Array.Empty<Type>())!.Invoke(data, Array.Empty<object>())!;
             if (result.Length < byteCount)
                 return -1;
 
@@ -455,7 +452,7 @@ public static class Bytes
 
         var intf = interfaces.FirstOrDefault(p => p.FullName is not null && p.FullName.Contains("System.Numerics.IBinaryInteger"));
         if (intf is not null)
-            size = (int)intf.GetMethod("GetByteCount")!.Invoke(value, Array.Empty<object>())!;
+            size = (int)intf.GetMethod(nameof(IBinaryInteger<int>.GetByteCount))!.Invoke(value, Array.Empty<object>())!;
 
         if (size == -1)
             return false;
