@@ -3,7 +3,7 @@
 var arr = new byte[8];
 var s = new MemoryStream(arr);
 
-Bytes.From(new BinaryTest() { Width = 512, Height = 131072 }, s, Endianness.Big);
+Bytes.From<BinaryTest>(new() { Width = 512, Height = 131072 }, s, Endianness.Big);
 foreach (var i in arr)
     Console.WriteLine(i);
 

@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 
 namespace Bny.RawBytes;
 
@@ -73,22 +74,54 @@ public static class Bytes
     /// <param name="type">Type to convert to</param>
     /// <param name="readedBytes">number of bytes readed</param>
     /// <param name="endianness">byte order</param>
-    /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type, some types might ignore this</param>
+    /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type</param>
     /// <returns>The byte span converted to the type</returns>
     /// <exception cref="ArgumentException">Thrown for unsuported types</exception>
     public static object To(ReadOnlySpan<byte> data, Type type, out int readedBytes, Endianness endianness = Endianness.Default, bool? signed = null)
     {
-        object? res;
+        if ((readedBytes = TryTo(data, type, out var ret, endianness, signed)) >= 0)
+            return ret!;
+        throw new ArgumentException("Cannot convert to this value type from stream", nameof(type));
+    }
 
-        if ((readedBytes = TryReadBasicSpan(data, out res, type, endianness, signed)) >= 0)
-            return res!;
-        if ((readedBytes = TryReadBinaryObjectAttribute(data, out res, type, endianness)) >= 0)
-            return res!;
-        if ((readedBytes = TryReadIBinaryObject(data, out res, type, endianness)) >= 0)
-            return res!;
-        if ((readedBytes = TryReadIBinaryInteger(data, out res, type, endianness, signed)) >= 0)
-            return res!;
-        throw new ArgumentException("Cannot convert to this value type", nameof(type));
+    /// <summary>
+    /// Converts byte array to the given type
+    /// </summary>
+    /// <typeparam name="T">Type to convert to</typeparam>
+    /// <param name="data">Bytes to convert</param>
+    /// <param name="result">the result, not null when returns positive</param>
+    /// <param name="endianness">byte order</param>
+    /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type</param>
+    /// <returns>The byte span converted to the type</returns>
+    public static int TryTo<T>(ReadOnlySpan<byte> data, out T? result, Endianness endianness = Endianness.Default, bool? signed = null)
+    {
+        var ret = TryTo(data, typeof(T), out var res, endianness, signed);
+        result = (T?)res;
+        return ret;
+    }
+
+    /// <summary>
+    /// Converts byte array to the given type
+    /// </summary>
+    /// <param name="data">Bytes to convert</param>
+    /// <param name="type">Type to convert to</param>
+    /// <param name="result">the converted value</param>
+    /// <param name="endianness">byte order</param>
+    /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type, some types might ignore this</param>
+    /// <returns>number of readed bytes on success, otherwise negative</returns>
+    public static int TryTo(ReadOnlySpan<byte> data, Type type, out object? result, Endianness endianness = Endianness.Default, bool? signed = null)
+    {
+        int rb;
+
+        if ((rb = TryReadBasicSpan(data, out result, type, endianness, signed)) >= 0)
+            return rb;
+        if ((rb = TryReadBinaryObjectAttribute(data, out result, type, endianness)) >= 0)
+            return rb;
+        if ((rb = TryReadIBinaryObject(data, out result, type, endianness)) >= 0)
+            return rb;
+        if ((rb = TryReadIBinaryInteger(data, out result, type, endianness, signed)) >= 0)
+            return rb;
+        return -1;
     }
 
     private static int TryReadBinaryObjectAttribute(ReadOnlySpan<byte> data, out object? result, Type type, Endianness endianness)
@@ -106,7 +139,11 @@ public static class Bytes
         foreach (var m in members)
         {
             var end = m.Attrib.Endianness == Endianness.Default ? endianness : m.Attrib.Endianness;
-            m.SetValue(result, To(data, m.MemberType, out int rb, end));
+            int rb = TryTo(data, m.MemberType, out var res, end);
+            if (rb < 0)
+                return -1;
+
+            m.SetValue(result, res); // TODO: add TrySetValue
             data = data[rb..];
             totalReaded += rb;
         }
@@ -173,21 +210,52 @@ public static class Bytes
     /// Reads the given type from the given stream
     /// </summary>
     /// <param name="data">Stream to read from</param>
-    /// <param name="type">Type to convert to</param>
+    /// <param name="type">type to convert to</param>
     /// <param name="endianness">byte order</param>
     /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type, some types might ignore this</param>
     /// <returns>The byte span converted to the type</returns>
     /// <exception cref="ArgumentException">Thrown for unsuported types</exception>
     public static object To(Stream data, Type type, Endianness endianness = Endianness.Default, bool? signed = null)
     {
-        object? obj;
-        if (TryReadBasicStream(data, out obj, type, endianness, signed))
-            return obj;
-        if (TryReadBinaryObjectAttribute(data, out obj, type, endianness))
-            return obj;
-        if (TryReadIBinaryObject(data, out obj, type, endianness))
-            return obj;
+        if (TryTo(data, type, out var ret, endianness, signed))
+            return ret;
         throw new ArgumentException("Cannot convert to this value type from stream", nameof(type));
+    }
+
+    /// <summary>
+    /// Reads the given type from the given stream
+    /// </summary>
+    /// <typeparam name="T">type to convert to</typeparam>
+    /// <param name="data">Stream to read from</param>
+    /// <param name="result">the result od the operation</param>
+    /// <param name="endianness">byte order</param>
+    /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type, some types might ignore this</param>
+    /// <returns>true on success, otherwise false</returns>
+    public static bool TryTo<T>(Stream data, [NotNullWhen(true)] out T? result, Endianness endianness = Endianness.Default, bool? signed = null)
+    {
+        var ret = TryTo(data, typeof(T), out var res, endianness, signed);
+        result = (T?)res;
+        return ret;
+    }
+
+    /// <summary>
+    /// Reads the given type from the given stream
+    /// </summary>
+    /// <param name="data">Stream to read from</param>
+    /// <param name="type">Type to convert to</param>
+    /// <param name="result">Result of the conversion</param>
+    /// <param name="endianness">byte order</param>
+    /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type, some types might ignore this</param>
+    /// <returns>true on success, otherwise false</returns>
+    public static bool TryTo(Stream data, Type type, [NotNullWhen(true)] out object? result, Endianness endianness = Endianness.Default, bool? signed = null)
+    {
+        if (TryReadBasicStream(data, out result, type, endianness, signed))
+            return true;
+        if (TryReadBinaryObjectAttribute(data, out result, type, endianness))
+            return true;
+        if (TryReadIBinaryObject(data, out result, type, endianness))
+            return true;
+        return false;
     }
 
     private static bool TryReadBinaryObjectAttribute(Stream data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness)
@@ -203,7 +271,9 @@ public static class Bytes
         foreach (var m in membs)
         {
             var end = m.Attrib.Endianness == Endianness.Default ? endianness : m.Attrib.Endianness;
-            m.SetValue(result, To(data, m.MemberType, end));
+            if (!TryTo(data, m.MemberType, out var res, end))
+                return false;
+            m.SetValue(result, res);
         }
         return true;
     }
@@ -354,38 +424,75 @@ public static class Bytes
     /// Converts the value into byte array
     /// </summary>
     /// <typeparam name="T">Type of the value to convert</typeparam>
-    /// <param name="value">vylue to convert</param>
+    /// <param name="value">value to convert</param>
     /// <param name="result">Where the bytes will be written</param>
     /// <param name="endianness">Byte order of the conversion</param>
-    /// <returns>number of written bytes, -1 on error</returns>
-    public static int From<T>(T value, Span<byte> result, Endianness endianness = Endianness.Default)
-        => From(value!, result, typeof(T), endianness);
+    /// <returns>number of written bytes</returns>
+    /// <exception cref="ArgumentException">thrown for unsupported types</exception>
+    public static int From<T>(T? value, Span<byte> result, Endianness endianness = Endianness.Default)
+    {
+        var ret = TryFrom(value, result, typeof(T), endianness);
+        return ret < 0
+            ? throw new ArgumentException("Cannot convert to this value type", nameof(value))
+            : ret;
+    }
 
     /// <summary>
     /// Converts the value into byte array
     /// </summary>
-    /// <param name="value">vylue to convert</param>
+    /// <param name="value">value to convert</param>
     /// <param name="result">Where the bytes will be written</param>
-    /// <param name="type">Type of the value to convert</param>
+    /// <param name="endianness">Byte order of the conversion</param>
+    /// <returns>number of written bytes</returns>
+    /// <exception cref="ArgumentException">thrown for unsupported types</exception>
+    public static int From(object? value, Span<byte> result, Endianness endianness = Endianness.Default)
+    {
+        var ret = TryFrom(value, result, endianness);
+        return ret < 0
+            ? throw new ArgumentException("Cannot convert to this value type", nameof(value))
+            : ret;
+    }
+
+    /// <summary>
+    /// Converts the value into byte array
+    /// </summary>
+    /// <typeparam name="T">Type of the value to convert</typeparam>
+    /// <param name="value">value to convert</param>
+    /// <param name="result">Where the bytes will be written</param>
     /// <param name="endianness">Byte order of the conversion</param>
     /// <returns>number of written bytes, -1 on error</returns>
-    /// <exception cref="ArgumentException">thrown for unsupported types</exception>
-    public static int From(object value, Span<byte> result, Type type, Endianness endianness = Endianness.Default)
+    public static int TryFrom<T>(T? value, Span<byte> result, Endianness endianness = Endianness.Default)
+        => TryFrom(value, result, typeof(T), endianness);
+
+    /// <summary>
+    /// Converts the value into byte array
+    /// </summary>
+    /// <param name="value">value to convert</param>
+    /// <param name="result">Where the bytes will be written</param>
+    /// <param name="endianness">Byte order of the conversion</param>
+    /// <returns>number of written bytes, -1 on error</returns>
+    public static int TryFrom(object? value, Span<byte> result, Endianness endianness = Endianness.Default)
+        => TryFrom(value, result, value?.GetType()!, endianness);
+
+    private static int TryFrom(object? value, Span<byte> result, Type type, Endianness endianness)
     {
+        if (value is null)
+            return -1;
         int len;
         if ((len = TryWriteBinaryAttribute(value, result, type, endianness)) >= 0)
             return len;
-
-        if (value is IBinaryObjectWrite bow)
-        {
-            int count = bow.TryWriteToBinary(result, endianness);
-            if (count > 0)
-                return count;
-        }
-
+        if ((len = TryWriteIBinaryObjectWrite(value, result, endianness)) >= 0)
+            return len;
         if ((len = TryWriteIBinaryInteger(value, result, type, endianness)) >= 0)
             return len;
-        throw new ArgumentException("Cannot convert from this value type", nameof(value));
+        return -1;
+    }
+
+    private static int TryWriteIBinaryObjectWrite(object value, Span<byte> result, Endianness endianness = Endianness.Default)
+    {
+        if (value is not IBinaryObjectWrite bow)
+            return -1;
+        return bow.TryWriteToBinary(result, endianness);
     }
 
     private static int TryWriteBinaryAttribute(object value, Span<byte> result, Type type, Endianness endianness)
@@ -397,7 +504,9 @@ public static class Bytes
         foreach (var m in members)
         {
             var end = m.Attrib.Endianness == Endianness.Default ? endianness : m.Attrib.Endianness;
-            var wb = From(m.GetValue(value)!, result, m.MemberType, end);
+            var wb = TryFrom(m.GetValue(value)!, result, m.MemberType, end);
+            if (wb < 0)
+                return -1;
             result = result[wb..];
             bytesWritten += wb;
         }
@@ -443,29 +552,58 @@ public static class Bytes
     /// <param name="value">vylue to convert</param>
     /// <param name="output">Where the bytes will be written</param>
     /// <param name="endianness">Byte order of the conversion</param>
-    /// <returns>the converted value</returns>
     /// <exception cref="ArgumentException">thrown for unsupported types</exception>
-    public static bool From<T>(T value, Stream output, Endianness endianness = Endianness.Default)
-        => From(value!, output, typeof(T), endianness);
+    public static void From<T>(T? value, Stream output, Endianness endianness = Endianness.Default)
+    {
+        if (!TryFrom(value, output, typeof(T), endianness))
+            throw new ArgumentException("Cannot convert to this value type from stream", nameof(value));
+    }
 
     /// <summary>
     /// Converts the value into bytes and writes it to a stream
     /// </summary>
     /// <param name="value">vylue to convert</param>
     /// <param name="output">Where the bytes will be written</param>
-    /// <param name="type">Type of the value to convert</param>
     /// <param name="endianness">Byte order of the conversion</param>
-    /// <returns>the converted value</returns>
     /// <exception cref="ArgumentException">thrown for unsupported types</exception>
-    public static bool From(object value, Stream output, Type type, Endianness endianness = Endianness.Default)
+    public static void From(object? value, Stream output, Endianness endianness = Endianness.Default)
     {
+        if (!TryFrom(value, output, value?.GetType()!, endianness))
+            throw new ArgumentException("Cannot convert to this value type from stream", nameof(value));
+    }
+
+    /// <summary>
+    /// Converts the value into bytes and writes it to a stream
+    /// </summary>
+    /// <typeparam name="T">Type of the value to convert</typeparam>
+    /// <param name="value">value to convert</param>
+    /// <param name="output">Where the bytes will be written</param>
+    /// <param name="endianness">Byte order of the conversion</param>
+    /// <returns>true on success, otherwise false</returns>
+    public static bool TryFrom<T>(T? value, Stream output, Endianness endianness = Endianness.Default)
+        => TryFrom(value, output, typeof(T), endianness);
+
+    /// <summary>
+    /// Converts the value into bytes and writes it to a stream
+    /// </summary>
+    /// <param name="value">value to convert</param>
+    /// <param name="output">Where the bytes will be written</param>
+    /// <param name="endianness">Byte order of the conversion</param>
+    /// <returns>true on success, otherwise false</returns>
+    public static bool TryFrom(object? value, Stream output, Endianness endianness = Endianness.Default)
+        => TryFrom(value, output, value?.GetType()!, endianness);
+
+    private static bool TryFrom(object? value, Stream output, Type type, Endianness endianness = Endianness.Default)
+    {
+        if (value is null)
+            return false;
         if (TryWriteBinaryObjectAttribute(value, output, type, endianness))
             return true;
         if (TryWriteIBinaryObjectWrite(value, output, endianness))
             return true;
         if (TryWriteIBinaryInteger(value, output, type, endianness))
             return true;
-        throw new ArgumentException("Cannot convert from this value type", nameof(value));
+        return false;
     }
 
     private static bool TryWriteBinaryObjectAttribute(object value, Stream output, Type type, Endianness endianness)
@@ -476,7 +614,8 @@ public static class Bytes
         foreach (var m in members)
         {
             var end = m.Attrib.Endianness == Endianness.Default ? endianness : m.Attrib.Endianness;
-            From(m.GetValue(value)!, output, m.MemberType, end);
+            if (!TryFrom(m.GetValue(value)!, output, m.MemberType, end))
+                return false;
         }
         return true;
     }
@@ -504,8 +643,7 @@ public static class Bytes
         int size = (int)intf.GetMethod(nameof(IBinaryInteger<int>.GetByteCount))!.Invoke(value, Array.Empty<object>())!;
 
         Span<byte> buffer = new byte[size];
-        var ret = From(value, buffer, type, endianness) >= 0;
-        if (!ret)
+        if (TryFrom(value, buffer, type, endianness) < 0)
             return false;
         output.Write(buffer);
         return true;
