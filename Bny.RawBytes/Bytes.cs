@@ -353,7 +353,7 @@ public static class Bytes
     public static int From(object value, Span<byte> result, Type type, Endianness endianness = Endianness.Default)
     {
         int len;
-        if ((len = TryWriteAttribute(value, result, type, endianness)) >= 0)
+        if ((len = TryWriteBinaryAttribute(value, result, type, endianness)) >= 0)
             return len;
 
         if (value is IBinaryObjectWrite bow)
@@ -368,7 +368,7 @@ public static class Bytes
         throw new ArgumentException("Cannot convert from this value type", nameof(value));
     }
 
-    private static int TryWriteAttribute(object value, Span<byte> result, Type type, Endianness endianness)
+    private static int TryWriteBinaryAttribute(object value, Span<byte> result, Type type, Endianness endianness)
     {
         if (!TryExtractAttribute(type, out var attrib, ref endianness, out var members))
             return -1;
