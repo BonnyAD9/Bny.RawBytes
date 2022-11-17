@@ -8,10 +8,10 @@ Console.WriteLine(Bytes.To<BinaryTest>(arr));
 class BinaryTest
 {
     [BinaryMember(size: 3, encoding: "us-ascii")]
-    string Language { get; init; }
+    string Language { get; init; } = "";
 
     [BinaryMember(nullTerminated: true)]
-    string Comment { get; init; }
+    string Comment { get; init; } = "";
 
     public override string ToString() => $"{Language}: {Comment}";
 }

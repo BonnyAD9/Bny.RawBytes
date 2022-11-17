@@ -5,8 +5,8 @@ namespace Bny.RawBytes;
 internal class BinaryMemberAttributeInfo
 {
     public BinaryMemberAttribute Attrib { get; init; }
-    private Func<object?, object?> _getValue { get; init; }
-    private Action<object?, object?> _setValue { get; init; }
+    private readonly Func<object?, object?> _getValue;
+    private readonly Action<object?, object?> _setValue;
     public Type MemberType { get; init; }
 
     public BinaryMemberAttributeInfo(FieldInfo field)

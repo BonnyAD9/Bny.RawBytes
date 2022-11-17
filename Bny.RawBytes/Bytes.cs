@@ -136,38 +136,54 @@ public static class Bytes
         int ret;
         switch (result)
         {
-            case sbyte n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, par, true);
-                result = n;
-                return ret;
-            case byte n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, par, false);
-                result = n;
-                return ret;
-            case short n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, par, true);
-                result = n;
-                return ret;
-            case ushort n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, par, false);
-                result = n;
-                return ret;
-            case int n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, par, true);
-                result = n;
-                return ret;
-            case uint n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, par, false);
-                result = n;
-                return ret;
-            case long n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, par, true);
-                result = n;
-                return ret;
-            case ulong n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, par, false);
-                result = n;
-                return ret;
+            case sbyte:
+                {
+                    ret = TryReadIBinaryIntegerSpan(data, out sbyte n, par, true);
+                    result = n;
+                    return ret;
+                }
+            case byte:
+                {
+                    ret = TryReadIBinaryIntegerSpan(data, out byte n, par, false);
+                    result = n;
+                    return ret;
+                }
+            case short:
+                {
+                    ret = TryReadIBinaryIntegerSpan(data, out short n, par, true);
+                    result = n;
+                    return ret;
+                }
+            case ushort:
+                {
+                    ret = TryReadIBinaryIntegerSpan(data, out ushort n, par, false);
+                    result = n;
+                    return ret;
+                }
+            case int:
+                {
+                    ret = TryReadIBinaryIntegerSpan(data, out int n, par, true);
+                    result = n;
+                    return ret;
+                }
+            case uint:
+                {
+                    ret = TryReadIBinaryIntegerSpan(data, out uint n, par, false);
+                    result = n;
+                    return ret;
+                }
+            case long:
+                {
+                    ret = TryReadIBinaryIntegerSpan(data, out long n, par, true);
+                    result = n;
+                    return ret;
+                }
+            case ulong:
+                {
+                    ret = TryReadIBinaryIntegerSpan(data, out ulong n, par, false);
+                    result = n;
+                    return ret;
+                }
             default:
                 return -1;
         };
@@ -176,7 +192,7 @@ public static class Bytes
     private static int TryReadBinaryObjectAttribute(ReadOnlySpan<byte> data, out object? result, BytesParam par)
     {
         result = null;
-        if (!TryExtractAttribute(par, out var attrib, out var members, out var objPar))
+        if (!TryExtractAttribute(par, out _, out var members, out var objPar))
             return -1;
 
         result = par.CreateInstance();
@@ -212,7 +228,7 @@ public static class Bytes
     private static int TryReadIBinaryInteger(ReadOnlySpan<byte> data, out object? result, BytesParam par)
     {
         result = null;
-        string mname = par.GetEndianness() == Endianness.Little ? nameof(_TryReadIBinaryIntegerLE) : nameof(_TryReadIBinaryIntegerBE);
+        string mname = par.GetEndianness() == Endianness.Little ? nameof(TryReadIBinaryIntegerLEWrapper) : nameof(TryReadIBinaryIntegerBEWrapper);
 
         // check whether the type implements the IBinaryInteger interface
         var interfaces = par.Type.GetInterfaces();
@@ -240,7 +256,7 @@ public static class Bytes
 
         // use reflection to call the generic wrapper
         var parm = new object[] { new SizedPointer<byte>(data), null!, par.Endianness };
-        var ret = (int)typeof(Bytes).GetMethod(nameof(_TryReadIBinaryObject), BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(par.Type)!.Invoke(null, parm)!;
+        var ret = (int)typeof(Bytes).GetMethod(nameof(TryReadIBinaryObjectWrapper), BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(par.Type)!.Invoke(null, parm)!;
         result = parm[1];
         ret = result is null && ret >= 0 ? -1 : ret;
         return ret;
@@ -328,38 +344,54 @@ public static class Bytes
         bool ret;
         switch (result)
         {
-            case sbyte n:
-                ret = TryReadIBinaryIntegerStream(data, out n, par, true);
-                result = n;
-                return ret;
-            case byte n:
-                ret = TryReadIBinaryIntegerStream(data, out n, par, false);
-                result = n;
-                return ret;
-            case short n:
-                ret = TryReadIBinaryIntegerStream(data, out n, par, true);
-                result = n;
-                return ret;
-            case ushort n:
-                ret = TryReadIBinaryIntegerStream(data, out n, par, false);
-                result = n;
-                return ret;
-            case int n:
-                ret = TryReadIBinaryIntegerStream(data, out n, par, true);
-                result = n;
-                return ret;
-            case uint n:
-                ret = TryReadIBinaryIntegerStream(data, out n, par, false);
-                result = n;
-                return ret;
-            case long n:
-                ret = TryReadIBinaryIntegerStream(data, out n, par, true);
-                result = n;
-                return ret;
-            case ulong n:
-                ret = TryReadIBinaryIntegerStream(data, out n, par, false);
-                result = n;
-                return ret;
+            case sbyte:
+                {
+                    ret = TryReadIBinaryIntegerStream(data, out sbyte n, par, true);
+                    result = n;
+                    return ret;
+                }
+            case byte:
+                {
+                    ret = TryReadIBinaryIntegerStream(data, out byte n, par, false);
+                    result = n;
+                    return ret;
+                }
+            case short:
+                {
+                    ret = TryReadIBinaryIntegerStream(data, out short n, par, true);
+                    result = n;
+                    return ret;
+                }
+            case ushort:
+                {
+                    ret = TryReadIBinaryIntegerStream(data, out ushort n, par, false);
+                    result = n;
+                    return ret;
+                }
+            case int:
+                {
+                    ret = TryReadIBinaryIntegerStream(data, out int n, par, true);
+                    result = n;
+                    return ret;
+                }
+            case uint:
+                {
+                    ret = TryReadIBinaryIntegerStream(data, out uint n, par, false);
+                    result = n;
+                    return ret;
+                }
+            case long:
+                {
+                    ret = TryReadIBinaryIntegerStream(data, out long n, par, true);
+                    result = n;
+                    return ret;
+                }
+            case ulong:
+                {
+                    ret = TryReadIBinaryIntegerStream(data, out ulong n, par, false);
+                    result = n;
+                    return ret;
+                }
             default:
                 return false;
         };
@@ -368,7 +400,7 @@ public static class Bytes
     private static bool TryReadBinaryObjectAttribute(Stream data, [NotNullWhen(true)] out object? result, BytesParam par)
     {
         result = null;
-        if (!TryExtractAttribute(par, out var attrib, out var membs, out var objPar))
+        if (!TryExtractAttribute(par, out _, out var membs, out var objPar))
             return false;
 
         result = par.CreateInstance();
@@ -405,26 +437,25 @@ public static class Bytes
             return false;
 
         var parm = new object[] { data, null!, par.Endianness };
-        var ret = (bool)typeof(Bytes).GetMethod(nameof(_TryReadIBinaryObjectS), BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(par.Type)!.Invoke(null, parm)!;
+        var ret = (bool)typeof(Bytes).GetMethod(nameof(TryReadIBinaryObjectSWrapper), BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(par.Type)!.Invoke(null, parm)!;
         result = parm[1];
         return ret && result is not null;
     }
 
     // Wrappers for IBinaryInteger TryRead methods with SizedPointer as parameter instead of Span
-    private static bool _TryReadIBinaryIntegerLE<T>(SizedPointer<byte> ptr, bool isUnsigned, out T result) where T : IBinaryInteger<T>
+    private static bool TryReadIBinaryIntegerLEWrapper<T>(SizedPointer<byte> ptr, bool isUnsigned, out T result) where T : IBinaryInteger<T>
         => T.TryReadLittleEndian(ptr, isUnsigned, out result);
-    private static bool _TryReadIBinaryIntegerBE<T>(SizedPointer<byte> ptr, bool isUnsigned, out T result) where T : IBinaryInteger<T>
+    private static bool TryReadIBinaryIntegerBEWrapper<T>(SizedPointer<byte> ptr, bool isUnsigned, out T result) where T : IBinaryInteger<T>
         => T.TryReadBigEndian(ptr, isUnsigned, out result);
 
     // Wrapper for IBinaryObject TryRead methods
-    private static int _TryReadIBinaryObject<T>(SizedPointer<byte> ptr, out T? result, Endianness endianness) where T : IBinaryObject<T>
+    private static int TryReadIBinaryObjectWrapper<T>(SizedPointer<byte> ptr, out T? result, Endianness endianness) where T : IBinaryObject<T>
         => T.TryReadFromBinary(ptr, out result, endianness);
-    private static bool _TryReadIBinaryObjectS<T>(Stream str, out T? result, Endianness endianness) where T : IBinaryObject<T>
+    private static bool TryReadIBinaryObjectSWrapper<T>(Stream str, out T? result, Endianness endianness) where T : IBinaryObject<T>
         => T.TryReadFromBinary(str, out result, endianness);
 
     private static int TryReadIBinaryIntegerSpan<T>(ReadOnlySpan<byte> span, [NotNullWhen(true)] out T? result, BytesParam par, bool signed) where T : IBinaryInteger<T>
     {
-        result = default;
         int size = Marshal.SizeOf<T>();
         span = span[..size];
 
@@ -529,7 +560,7 @@ public static class Bytes
 
     private static int TryWriteBinaryAttribute(object value, Span<byte> result, BytesParam par)
     {
-        if (!TryExtractAttribute(par, out var attrib, out var members, out var objPar))
+        if (!TryExtractAttribute(par, out _, out var members, out var objPar))
             return -1;
 
         int bytesWritten = 0;
@@ -554,7 +585,7 @@ public static class Bytes
 
     private static int TryWriteIBinaryInteger(object data, Span<byte> result, BytesParam par)
     {
-        string mname = par.GetEndianness() == Endianness.Little ? nameof(_TryWriteIBinaryIntegerLE) : nameof(_TryWriteIBinaryIntegerBE);
+        string mname = par.GetEndianness() == Endianness.Little ? nameof(TryWriteIBinaryIntegerLEWrapper) : nameof(TryWriteIBinaryIntegerBEWrapper);
 
         var bi = par.Type.GetInterfaces().FirstOrDefault(p => p.FullName is not null && p.FullName.Contains("System.Numerics.IBinaryInteger"));
         if (bi is null)
@@ -657,7 +688,7 @@ public static class Bytes
 
     private static bool TryWriteBinaryObjectAttribute(object value, Stream output, BytesParam par)
     {
-        if (!TryExtractAttribute(par, out var attrib, out var members, out var objPar))
+        if (!TryExtractAttribute(par, out _, out var members, out var objPar))
             return false;
 
         foreach (var m in members)
@@ -697,9 +728,9 @@ public static class Bytes
         return true;
     }
 
-    private static bool _TryWriteIBinaryIntegerLE<T>(T value, SizedPointer<byte> ptr, out int bytesWritten) where T : IBinaryInteger<T>
+    private static bool TryWriteIBinaryIntegerLEWrapper<T>(T value, SizedPointer<byte> ptr, out int bytesWritten) where T : IBinaryInteger<T>
         => value.TryWriteLittleEndian(ptr, out bytesWritten);
-    private static bool _TryWriteIBinaryIntegerBE<T>(T value, SizedPointer<byte> ptr, out int bytesWritten) where T : IBinaryInteger<T>
+    private static bool TryWriteIBinaryIntegerBEWrapper<T>(T value, SizedPointer<byte> ptr, out int bytesWritten) where T : IBinaryInteger<T>
         => value.TryWriteBigEndian(ptr, out bytesWritten);
 
     private static bool TryExtractAttribute(
