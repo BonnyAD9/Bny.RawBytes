@@ -124,6 +124,52 @@ public static class Bytes
         return -1;
     }
 
+    private static int TryReadBasicSpan(ReadOnlySpan<byte> data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness, bool? signed = null)
+    {
+        result = CreateInstance(type);
+        if (result is null)
+            return -1;
+
+        int ret;
+        switch (result)
+        {
+            case sbyte n:
+                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? true);
+                result = n;
+                return ret;
+            case byte n:
+                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? false);
+                result = n;
+                return ret;
+            case short n:
+                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? true);
+                result = n;
+                return ret;
+            case ushort n:
+                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? false);
+                result = n;
+                return ret;
+            case int n:
+                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? true);
+                result = n;
+                return ret;
+            case uint n:
+                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? false);
+                result = n;
+                return ret;
+            case long n:
+                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? true);
+                result = n;
+                return ret;
+            case ulong n:
+                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? false);
+                result = n;
+                return ret;
+            default:
+                return -1;
+        };
+    }
+
     private static int TryReadBinaryObjectAttribute(ReadOnlySpan<byte> data, out object? result, Type type, Endianness endianness)
     {
         result = null;
@@ -143,7 +189,7 @@ public static class Bytes
             if (rb < 0)
                 return -1;
 
-            m.SetValue(result, res); // TODO: add TrySetValue
+            m.SetValue(result, res);
             data = data[rb..];
             totalReaded += rb;
         }
@@ -258,39 +304,6 @@ public static class Bytes
         return false;
     }
 
-    private static bool TryReadBinaryObjectAttribute(Stream data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness)
-    {
-        result = null;
-        if (!TryExtractAttribute(type, out var attrib, ref endianness, out var membs))
-            return false;
-
-        result = CreateInstance(type);
-        if (result is null)
-            return false;
-
-        foreach (var m in membs)
-        {
-            var end = m.Attrib.Endianness == Endianness.Default ? endianness : m.Attrib.Endianness;
-            if (!TryTo(data, m.MemberType, out var res, end))
-                return false;
-            m.SetValue(result, res);
-        }
-        return true;
-    }
-
-    private static bool TryReadIBinaryObject(Stream data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness)
-    {
-        result = null;
-
-        if (!type.GetInterfaces().Any(p => p.FullName is not null && p.FullName.Contains("Bny.RawBytes.IBinaryObject")))
-            return false;
-
-        var parm = new object[] { data, null!, endianness };
-        var ret = (bool)typeof(Bytes).GetMethod(nameof(_TryReadIBinaryObjectS), BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(type)!.Invoke(null, parm)!;
-        result = parm[1];
-        return ret && result is not null;
-    }
-
     private static bool TryReadBasicStream(Stream data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness, bool? signed = null)
     {
         result = CreateInstance(type);
@@ -336,50 +349,38 @@ public static class Bytes
                 return false;
         };
     }
-    private static int TryReadBasicSpan(ReadOnlySpan<byte> data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness, bool? signed = null)
+
+    private static bool TryReadBinaryObjectAttribute(Stream data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness)
     {
+        result = null;
+        if (!TryExtractAttribute(type, out var attrib, ref endianness, out var membs))
+            return false;
+
         result = CreateInstance(type);
         if (result is null)
-            return -1;
+            return false;
 
-        int ret;
-        switch (result)
+        foreach (var m in membs)
         {
-            case sbyte n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? true);
-                result = n;
-                return ret;
-            case byte n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? false);
-                result = n;
-                return ret;
-            case short n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? true);
-                result = n;
-                return ret;
-            case ushort n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? false);
-                result = n;
-                return ret;
-            case int n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? true);
-                result = n;
-                return ret;
-            case uint n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? false);
-                result = n;
-                return ret;
-            case long n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? true);
-                result = n;
-                return ret;
-            case ulong n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? false);
-                result = n;
-                return ret;
-            default:
-                return -1;
-        };
+            var end = m.Attrib.Endianness == Endianness.Default ? endianness : m.Attrib.Endianness;
+            if (!TryTo(data, m.MemberType, out var res, end))
+                return false;
+            m.SetValue(result, res);
+        }
+        return true;
+    }
+
+    private static bool TryReadIBinaryObject(Stream data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness)
+    {
+        result = null;
+
+        if (!type.GetInterfaces().Any(p => p.FullName is not null && p.FullName.Contains("Bny.RawBytes.IBinaryObject")))
+            return false;
+
+        var parm = new object[] { data, null!, endianness };
+        var ret = (bool)typeof(Bytes).GetMethod(nameof(_TryReadIBinaryObjectS), BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(type)!.Invoke(null, parm)!;
+        result = parm[1];
+        return ret && result is not null;
     }
 
     // Wrappers for IBinaryInteger TryRead methods with SizedPointer as parameter instead of Span
