@@ -94,7 +94,7 @@ public static class Bytes
     private static int TryReadBinaryObjectAttribute(ReadOnlySpan<byte> data, out object? result, Type type, Endianness endianness)
     {
         result = null;
-        if (!TryExtractAttribute(type, out var attrib, ref endianness, out var fields, out var props))
+        if (!TryExtractAttribute(type, out var attrib, ref endianness, out var members))
             return -1;
 
         result = CreateInstance(type);
@@ -103,28 +103,12 @@ public static class Bytes
 
         int totalReaded = 0;
 
-        while (fields.Length > 0 || props.Length > 0)
+        foreach (var m in members)
         {
-            if (props.Length == 0 || (fields.Length > 0 && fields[0].Attrib.Order < props[0].Attrib.Order))
-            {
-                (var field, var attr) = fields[0];
-                fields = fields[1..];
-
-                var end = attr.Endianness == Endianness.Default ? endianness : attr.Endianness;
-                field.SetValue(result, To(data, field.FieldType, out int rb, end));
-                data = data[rb..];
-                totalReaded += rb;
-            }
-            else
-            {
-                (var prop, var attr) = props[0];
-                props = props[1..];
-
-                var end = attr.Endianness == Endianness.Default ? endianness : attr.Endianness;
-                prop.SetValue(result, To(data, prop.PropertyType, out int rb, end));
-                data = data[rb..];
-                totalReaded += rb;
-            }
+            var end = m.Attrib.Endianness == Endianness.Default ? endianness : m.Attrib.Endianness;
+            m.SetValue(result, To(data, m.MemberType, out int rb, end));
+            data = data[rb..];
+            totalReaded += rb;
         }
 
         return totalReaded;
@@ -386,32 +370,16 @@ public static class Bytes
 
     private static int TryWriteAttribute(object value, Span<byte> result, Type type, Endianness endianness)
     {
-        if (!TryExtractAttribute(type, out var attrib, ref endianness, out var fields, out var props))
+        if (!TryExtractAttribute(type, out var attrib, ref endianness, out var members))
             return -1;
 
         int bytesWritten = 0;
-        while (fields.Length > 0 || props.Length > 0)
+        foreach (var m in members)
         {
-            if (props.Length == 0 || (fields.Length > 0 && fields[0].Attrib.Order < props[0].Attrib.Order))
-            {
-                (var field, var attr) = fields[0];
-                fields = fields[1..];
-
-                var end = attr.Endianness == Endianness.Default ? endianness : attr.Endianness;
-                var wb = From(field.GetValue(value)!, result, field.FieldType, end);
-                result = result[wb..];
-                bytesWritten += wb;
-            }
-            else
-            {
-                (var prop, var attr) = props[0];
-                props = props[1..];
-
-                var end = attr.Endianness == Endianness.Default ? endianness : attr.Endianness;
-                var wb = From(prop.GetValue(value)!, result, prop.PropertyType, end);
-                result = result[wb..];
-                bytesWritten += wb;
-            }
+            var end = m.Attrib.Endianness == Endianness.Default ? endianness : m.Attrib.Endianness;
+            var wb = From(m.GetValue(value)!, result, m.MemberType, end);
+            result = result[wb..];
+            bytesWritten += wb;
         }
 
         return bytesWritten;
@@ -521,11 +489,9 @@ public static class Bytes
         Type type,
         [NotNullWhen(true)]out BinaryObjectAttribute? attrib,
         ref Endianness endianness,
-        out Span<(FieldInfo Prop,BinaryMemberAttribute Attrib)> fields,
-        out Span<(PropertyInfo Prop, BinaryMemberAttribute Attrib)> props)
+        out Span<BinaryMemberAttributeInfo> members)
     {
-        fields = Array.Empty<(FieldInfo Prop, BinaryMemberAttribute Attrib)>().AsSpan();
-        props = Array.Empty<(PropertyInfo Prop, BinaryMemberAttribute Attrib)>().AsSpan();
+        members = Array.Empty<BinaryMemberAttributeInfo>().AsSpan();
 
         attrib = type.GetCustomAttribute<BinaryObjectAttribute>();
         if (attrib is null)
@@ -535,13 +501,9 @@ public static class Bytes
 
         const BindingFlags AllBindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
 
-        fields = type.GetFields(AllBindingFlags)
-            .Select(p => (p, p.GetCustomAttribute<BinaryMemberAttribute>()!))
-            .Where(p => p.Item2 is not null).OrderBy(p => p.Item2.Order).ToArray().AsSpan();
-
-        props = type.GetProperties(AllBindingFlags)
-            .Select(p => (p, p.GetCustomAttribute<BinaryMemberAttribute>()!))
-            .Where(p => p.Item2 is not null).OrderBy(p => p.Item2.Order).ToArray().AsSpan();
+        members = type.GetFields(AllBindingFlags).Select(p => new BinaryMemberAttributeInfo(p))
+            .Concat(type.GetProperties(AllBindingFlags).Select(p => new BinaryMemberAttributeInfo(p)))
+            .Where(p => p.Attrib is not null).OrderBy(p => p.Attrib.Order).ToArray().AsSpan();
 
         return true;
     }
