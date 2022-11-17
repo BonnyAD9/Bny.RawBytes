@@ -33,12 +33,10 @@ public static class Bytes
     /// </summary>
     /// <typeparam name="T">Type to convert to</typeparam>
     /// <param name="data">Bytes to convert</param>
-    /// <param name="endianness">byte order</param>
-    /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type</param>
-    /// <param name="encoding">the default string encoding</param>
+    /// <param name="par">the conversion parameters, null creates default conversion parameters</param>
     /// <returns>The byte span converted to the type</returns>
-    public static T To<T>(ReadOnlySpan<byte> data, Endianness endianness = Endianness.Default, Sign signed = Sign.Default, string encoding = "utf-8")
-        => (T)To(data, typeof(T), endianness, signed, encoding);
+    public static T To<T>(ReadOnlySpan<byte> data, BytesParam? par = null)
+        => (T)To(data, typeof(T), par);
 
     /// <summary>
     /// Converts byte array to the given type
@@ -46,25 +44,21 @@ public static class Bytes
     /// <typeparam name="T">Type to convert to</typeparam>
     /// <param name="data">Bytes to convert</param>
     /// <param name="readedBytes">number of bytes readed</param>
-    /// <param name="endianness">byte order</param>
-    /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type</param>
-    /// <param name="encoding">the default string encoding</param>
+    /// <param name="par">the conversion parameters, null creates default conversion parameters</param>
     /// <returns>The byte span converted to the type</returns>
-    public static T To<T>(ReadOnlySpan<byte> data, out int readedBytes, Endianness endianness = Endianness.Default, Sign signed = Sign.Default, string encoding = "utf-8")
-        => (T)To(data, typeof(T), out readedBytes, endianness, signed, encoding);
+    public static T To<T>(ReadOnlySpan<byte> data, out int readedBytes, BytesParam? par = null)
+        => (T)To(data, typeof(T), out readedBytes, par);
 
     /// <summary>
     /// Converts byte array to the given type
     /// </summary>
     /// <param name="data">Bytes to convert</param>
     /// <param name="type">Type to convert to</param>
-    /// <param name="endianness">byte order</param>
-    /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type, some types might ignore this</param>
-    /// <param name="encoding">the default string encoding</param>
+    /// <param name="par">the conversion parameters, null creates default conversion parameters</param>
     /// <returns>The byte span converted to the type</returns>
     /// <exception cref="ArgumentException">Thrown for unsuported types</exception>
-    public static object To(ReadOnlySpan<byte> data, Type type, Endianness endianness = Endianness.Default, Sign signed = Sign.Default, string encoding = "utf-8")
-        => To(data, type, out _, endianness, signed, encoding);
+    public static object To(ReadOnlySpan<byte> data, Type type, BytesParam? par = null)
+        => To(data, type, out _, par);
 
     /// <summary>
     /// Converts byte array to the given type
@@ -72,14 +66,12 @@ public static class Bytes
     /// <param name="data">Bytes to convert</param>
     /// <param name="type">Type to convert to</param>
     /// <param name="readedBytes">number of bytes readed</param>
-    /// <param name="endianness">byte order</param>
-    /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type</param>
-    /// <param name="encoding">the default string encoding</param>
+    /// <param name="par">the conversion parameters, null creates default conversion parameters</param>
     /// <returns>The byte span converted to the type</returns>
     /// <exception cref="ArgumentException">Thrown for unsuported types</exception>
-    public static object To(ReadOnlySpan<byte> data, Type type, out int readedBytes, Endianness endianness = Endianness.Default, Sign signed = Sign.Default, string encoding = "utf-8")
+    public static object To(ReadOnlySpan<byte> data, Type type, out int readedBytes, BytesParam? par = null)
     {
-        if ((readedBytes = TryTo(data, type, out var ret, endianness, signed, encoding)) >= 0)
+        if ((readedBytes = TryTo(data, type, out var ret, par)) >= 0)
             return ret!;
         throw new ArgumentException("Cannot convert to this value type from stream", nameof(type));
     }
@@ -90,13 +82,11 @@ public static class Bytes
     /// <typeparam name="T">Type to convert to</typeparam>
     /// <param name="data">Bytes to convert</param>
     /// <param name="result">the result, not null when returns positive</param>
-    /// <param name="endianness">byte order</param>
-    /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type</param>
-    /// <param name="encoding">the default string encoding</param>
+    /// <param name="par">the conversion parameters, null creates default conversion parameters</param>
     /// <returns>The byte span converted to the type</returns>
-    public static int TryTo<T>(ReadOnlySpan<byte> data, out T? result, Endianness endianness = Endianness.Default, Sign signed = Sign.Default, string encoding = "utf-8")
+    public static int TryTo<T>(ReadOnlySpan<byte> data, out T? result, BytesParam? par = null)
     {
-        var ret = TryTo(data, typeof(T), out var res, endianness, signed, encoding);
+        var ret = TryTo(data, typeof(T), out var res, par);
         result = (T?)res;
         return ret;
     }
@@ -107,38 +97,36 @@ public static class Bytes
     /// <param name="data">Bytes to convert</param>
     /// <param name="type">Type to convert to</param>
     /// <param name="result">the converted value</param>
-    /// <param name="endianness">byte order</param>
-    /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type, some types might ignore this</param>
-    /// <param name="encoding">the default string encoding</param>
+    /// <param name="par">the conversion parameters, null creates default conversion parameters</param>
     /// <returns>number of readed bytes on success, otherwise negative</returns>
-    public static int TryTo(ReadOnlySpan<byte> data, Type type, out object? result, Endianness endianness = Endianness.Default, Sign signed = Sign.Default, string encoding = "utf-8")
+    public static int TryTo(ReadOnlySpan<byte> data, Type type, out object? result, BytesParam? par = null)
+    {
+        par ??= new();
+        par.Type = type;
+        return TryTo(data, out result, par);
+    }
+
+    private static int TryTo(ReadOnlySpan<byte> data, out object? result, BytesParam par)
     {
         int rb;
 
-        if ((rb = TryReadBasicSpan(data, out result, type, endianness, signed, encoding)) >= 0)
+        if ((rb = TryReadBasicSpan(data, out result, par)) >= 0)
             return rb;
-        if ((rb = TryReadBinaryObjectAttribute(data, out result, type, endianness, encoding)) >= 0)
+        if ((rb = TryReadBinaryObjectAttribute(data, out result, par)) >= 0)
             return rb;
-        if ((rb = TryReadIBinaryObject(data, out result, type, endianness)) >= 0)
+        if ((rb = TryReadIBinaryObject(data, out result, par)) >= 0)
             return rb;
-        if ((rb = TryReadIBinaryInteger(data, out result, type, endianness, signed)) >= 0)
+        if ((rb = TryReadIBinaryInteger(data, out result, par)) >= 0)
             return rb;
         return -1;
     }
 
-    private static int TryReadBasicSpan(ReadOnlySpan<byte> data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness, Sign signed = Sign.Default, string encoding = "utf-8")
+    private static int TryReadBasicSpan(ReadOnlySpan<byte> data, [NotNullWhen(true)] out object? result, BytesParam par)
     {
-        result = null;
-        if (type == typeof(string))
-        {
-            var e = BinaryEncoding.TryGet(encoding);
-            if (e is null)
-                return -1;
-            result = e.GetString(data);
-            return data.Length;
-        }
+        if (par.Type == typeof(string))
+            return (result = par.GetString(data)) is null ? -1 : data.Length;
 
-        result = CreateInstance(type);
+        result = par.CreateInstance();
         if (result is null)
             return -1;
 
@@ -146,35 +134,35 @@ public static class Bytes
         switch (result)
         {
             case sbyte n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed.IsSigned(true));
+                ret = TryReadIBinaryIntegerSpan(data, out n, par, true);
                 result = n;
                 return ret;
             case byte n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed.IsSigned(false));
+                ret = TryReadIBinaryIntegerSpan(data, out n, par, false);
                 result = n;
                 return ret;
             case short n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed.IsSigned(true));
+                ret = TryReadIBinaryIntegerSpan(data, out n, par, true);
                 result = n;
                 return ret;
             case ushort n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed.IsSigned(false));
+                ret = TryReadIBinaryIntegerSpan(data, out n, par, false);
                 result = n;
                 return ret;
             case int n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed.IsSigned(true));
+                ret = TryReadIBinaryIntegerSpan(data, out n, par, true);
                 result = n;
                 return ret;
             case uint n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed.IsSigned(false));
+                ret = TryReadIBinaryIntegerSpan(data, out n, par, false);
                 result = n;
                 return ret;
             case long n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed.IsSigned(true));
+                ret = TryReadIBinaryIntegerSpan(data, out n, par, true);
                 result = n;
                 return ret;
             case ulong n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed.IsSigned(false));
+                ret = TryReadIBinaryIntegerSpan(data, out n, par, false);
                 result = n;
                 return ret;
             default:
@@ -182,13 +170,13 @@ public static class Bytes
         };
     }
 
-    private static int TryReadBinaryObjectAttribute(ReadOnlySpan<byte> data, out object? result, Type type, Endianness endianness, string encoding = "utf-8")
+    private static int TryReadBinaryObjectAttribute(ReadOnlySpan<byte> data, out object? result, BytesParam par)
     {
         result = null;
-        if (!TryExtractAttribute(type, out var attrib, ref endianness, out var members))
+        if (!TryExtractAttribute(par, out var attrib, out var endianness, out var members))
             return -1;
 
-        result = CreateInstance(type);
+        result = par.CreateInstance();
         if (result is null)
             return -1;
 
@@ -206,7 +194,7 @@ public static class Bytes
                 d = d[..m.Attrib.Size];
             }
 
-            int rb = TryTo(d, m.MemberType, out var res, end, m.Attrib.Signed, encoding);
+            int rb = TryTo(d, out var res, par with { Endianness = end, Sign = m.Attrib.Signed, Type = m.MemberType });
             if (rb < 0)
                 return -1;
 
@@ -220,44 +208,38 @@ public static class Bytes
         return totalReaded;
     }
 
-    private static int TryReadIBinaryInteger(ReadOnlySpan<byte> data, out object? result, Type type, Endianness endianness, Sign signed)
+    private static int TryReadIBinaryInteger(ReadOnlySpan<byte> data, out object? result, BytesParam par)
     {
         result = null;
-        string mname = endianness switch
-        {
-            Endianness.Big => nameof(_TryReadIBinaryIntegerBE),
-            Endianness.Little => nameof(_TryReadIBinaryIntegerLE),
-            Endianness.Default => IsDefaultLE ? nameof(_TryReadIBinaryIntegerLE) : nameof(_TryReadIBinaryIntegerBE),
-            _ => throw new ArgumentException("Invalid endianness value", nameof(endianness)),
-        };
+        string mname = par.GetEndianness() == Endianness.Little ? nameof(_TryReadIBinaryIntegerLE) : nameof(_TryReadIBinaryIntegerBE);
 
         // check whether the type implements the IBinaryInteger interface
-        var interfaces = type.GetInterfaces();
+        var interfaces = par.Type.GetInterfaces();
         if (!interfaces.Any(p => p.FullName is not null && p.FullName.Contains("System.Numerics.IBinaryInteger")))
             return -1;
 
         // if the signed value is not set, set it based on whether the type implements ISignedNumber
-        bool isUnsigned = !signed.IsSigned(interfaces.Any(p => p.FullName is not null && p.FullName.Contains("System.Numerics.ISignedNumber")));
+        bool isUnsigned = !par.IsSigned(interfaces.Any(p => p.FullName is not null && p.FullName.Contains("System.Numerics.ISignedNumber")));
 
         // use reflection to call wrappers for IBinaryInteger.TryReadLittleEndian or IBinaryInteger.TryReadBigEndian with the type parameter
         var parm = new object[] { new SizedPointer<byte>(data), isUnsigned, null! };
-        var res = (bool)typeof(Bytes).GetMethod(mname, BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(type)!.Invoke(null, parm)!;
+        var res = (bool)typeof(Bytes).GetMethod(mname, BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(par.Type)!.Invoke(null, parm)!;
         result = parm[2];
         res = res && result is not null;
         return res ? data.Length : -1;
     }
 
-    private static int TryReadIBinaryObject(ReadOnlySpan<byte> data, out object? result, Type type, Endianness endianness)
+    private static int TryReadIBinaryObject(ReadOnlySpan<byte> data, out object? result, BytesParam par)
     {
         result = null;
 
         // check whether the type implements the IBinaryObject interface
-        if (!type.GetInterfaces().Any(p => p.FullName is not null && p.FullName.Contains("Bny.RawBytes.IBinaryObject")))
+        if (!par.Type.GetInterfaces().Any(p => p.FullName is not null && p.FullName.Contains("Bny.RawBytes.IBinaryObject")))
             return -1;
 
         // use reflection to call the generic wrapper
-        var parm = new object[] { new SizedPointer<byte>(data), null!, endianness };
-        var ret = (int)typeof(Bytes).GetMethod(nameof(_TryReadIBinaryObject), BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(type)!.Invoke(null, parm)!;
+        var parm = new object[] { new SizedPointer<byte>(data), null!, par.Endianness };
+        var ret = (int)typeof(Bytes).GetMethod(nameof(_TryReadIBinaryObject), BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(par.Type)!.Invoke(null, parm)!;
         result = parm[1];
         ret = result is null && ret >= 0 ? -1 : ret;
         return ret;
@@ -268,25 +250,23 @@ public static class Bytes
     /// </summary>
     /// <typeparam name="T">type to convert to</typeparam>
     /// <param name="data">Stream to read from</param>
-    /// <param name="endianness">byte order</param>
-    /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type, some types might ignore this</param>
+    /// <param name="par">the conversion parameters, null creates default conversion parameters</param>
     /// <returns>The byte span converted to the type</returns>
     /// <exception cref="ArgumentException">Thrown for unsuported types</exception>
-    public static T To<T>(Stream data, Endianness endianness = Endianness.Default, Sign signed = Sign.Default)
-        => (T)To(data, typeof(T), endianness, signed);
+    public static T To<T>(Stream data, BytesParam? par = null)
+        => (T)To(data, typeof(T), par);
 
     /// <summary>
     /// Reads the given type from the given stream
     /// </summary>
     /// <param name="data">Stream to read from</param>
     /// <param name="type">type to convert to</param>
-    /// <param name="endianness">byte order</param>
-    /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type, some types might ignore this</param>
+    /// <param name="par">the conversion parameters, null creates default conversion parameters</param>
     /// <returns>The byte span converted to the type</returns>
     /// <exception cref="ArgumentException">Thrown for unsuported types</exception>
-    public static object To(Stream data, Type type, Endianness endianness = Endianness.Default, Sign signed = Sign.Default)
+    public static object To(Stream data, Type type, BytesParam? par = null)
     {
-        if (TryTo(data, type, out var ret, endianness, signed))
+        if (TryTo(data, type, out var ret, par))
             return ret;
         throw new ArgumentException("Cannot convert to this value type from stream", nameof(type));
     }
@@ -297,12 +277,11 @@ public static class Bytes
     /// <typeparam name="T">type to convert to</typeparam>
     /// <param name="data">Stream to read from</param>
     /// <param name="result">the result od the operation</param>
-    /// <param name="endianness">byte order</param>
-    /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type, some types might ignore this</param>
+    /// <param name="par">the conversion parameters, null creates default conversion parameters</param>
     /// <returns>true on success, otherwise false</returns>
-    public static bool TryTo<T>(Stream data, [NotNullWhen(true)] out T? result, Endianness endianness = Endianness.Default, Sign signed = Sign.Default)
+    public static bool TryTo<T>(Stream data, [NotNullWhen(true)] out T? result, BytesParam? par = null)
     {
-        var ret = TryTo(data, typeof(T), out var res, endianness, signed);
+        var ret = TryTo(data, typeof(T), out var res, par);
         result = (T?)res;
         return ret;
     }
@@ -313,23 +292,29 @@ public static class Bytes
     /// <param name="data">Stream to read from</param>
     /// <param name="type">Type to convert to</param>
     /// <param name="result">Result of the conversion</param>
-    /// <param name="endianness">byte order</param>
-    /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type, some types might ignore this</param>
+    /// <param name="par">the conversion parameters, null creates default conversion parameters</param>
     /// <returns>true on success, otherwise false</returns>
-    public static bool TryTo(Stream data, Type type, [NotNullWhen(true)] out object? result, Endianness endianness = Endianness.Default, Sign signed = Sign.Default)
+    public static bool TryTo(Stream data, Type type, [NotNullWhen(true)] out object? result, BytesParam? par = null)
     {
-        if (TryReadBasicStream(data, out result, type, endianness, signed))
+        par ??= new();
+        par.Type = type;
+        return TryTo(data, out result, par);
+    }
+
+    private static bool TryTo(Stream data, [NotNullWhen(true)] out object? result, BytesParam par)
+    {
+        if (TryReadBasicStream(data, out result, par))
             return true;
-        if (TryReadBinaryObjectAttribute(data, out result, type, endianness))
+        if (TryReadBinaryObjectAttribute(data, out result, par))
             return true;
-        if (TryReadIBinaryObject(data, out result, type, endianness))
+        if (TryReadIBinaryObject(data, out result, par))
             return true;
         return false;
     }
 
-    private static bool TryReadBasicStream(Stream data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness, Sign signed = Sign.Default)
+    private static bool TryReadBasicStream(Stream data, [NotNullWhen(true)] out object? result, BytesParam par)
     {
-        result = CreateInstance(type);
+        result = par.CreateInstance();
         if (result is null)
             return false;
 
@@ -337,35 +322,35 @@ public static class Bytes
         switch (result)
         {
             case sbyte n:
-                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed.IsSigned(true));
+                ret = TryReadIBinaryIntegerStream(data, out n, par, true);
                 result = n;
                 return ret;
             case byte n:
-                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed.IsSigned(false));
+                ret = TryReadIBinaryIntegerStream(data, out n, par, false);
                 result = n;
                 return ret;
             case short n:
-                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed.IsSigned(true));
+                ret = TryReadIBinaryIntegerStream(data, out n, par, true);
                 result = n;
                 return ret;
             case ushort n:
-                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed.IsSigned(false));
+                ret = TryReadIBinaryIntegerStream(data, out n, par, false);
                 result = n;
                 return ret;
             case int n:
-                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed.IsSigned(true));
+                ret = TryReadIBinaryIntegerStream(data, out n, par, true);
                 result = n;
                 return ret;
             case uint n:
-                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed.IsSigned(false));
+                ret = TryReadIBinaryIntegerStream(data, out n, par, false);
                 result = n;
                 return ret;
             case long n:
-                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed.IsSigned(true));
+                ret = TryReadIBinaryIntegerStream(data, out n, par, true);
                 result = n;
                 return ret;
             case ulong n:
-                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed.IsSigned(false));
+                ret = TryReadIBinaryIntegerStream(data, out n, par, false);
                 result = n;
                 return ret;
             default:
@@ -373,13 +358,13 @@ public static class Bytes
         };
     }
 
-    private static bool TryReadBinaryObjectAttribute(Stream data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness)
+    private static bool TryReadBinaryObjectAttribute(Stream data, [NotNullWhen(true)] out object? result, BytesParam par)
     {
         result = null;
-        if (!TryExtractAttribute(type, out var attrib, ref endianness, out var membs))
+        if (!TryExtractAttribute(par, out var attrib, out var endianness, out var membs))
             return false;
 
-        result = CreateInstance(type);
+        result = par.CreateInstance();
         if (result is null)
             return false;
 
@@ -393,12 +378,12 @@ public static class Bytes
                 Span<byte> buffer = new byte[m.Attrib.Size];
                 if (data.Read(buffer) != buffer.Length)
                     return false;
-                if (TryTo(buffer, m.MemberType, out res, end, m.Attrib.Signed) < 0)
+                if (TryTo(buffer, out res, par with { Type = m.MemberType, Endianness = end, Sign = m.Attrib.Signed }) < 0)
                     return false;
             }
             else
             {
-                if (!TryTo(data, m.MemberType, out res, end, m.Attrib.Signed))
+                if (!TryTo(data, out res, par with { Type = m.MemberType, Endianness = end, Sign = m.Attrib.Signed }))
                     return false;
             }
 
@@ -407,15 +392,15 @@ public static class Bytes
         return true;
     }
 
-    private static bool TryReadIBinaryObject(Stream data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness)
+    private static bool TryReadIBinaryObject(Stream data, [NotNullWhen(true)] out object? result, BytesParam par)
     {
         result = null;
 
-        if (!type.GetInterfaces().Any(p => p.FullName is not null && p.FullName.Contains("Bny.RawBytes.IBinaryObject")))
+        if (!par.Type.GetInterfaces().Any(p => p.FullName is not null && p.FullName.Contains("Bny.RawBytes.IBinaryObject")))
             return false;
 
-        var parm = new object[] { data, null!, endianness };
-        var ret = (bool)typeof(Bytes).GetMethod(nameof(_TryReadIBinaryObjectS), BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(type)!.Invoke(null, parm)!;
+        var parm = new object[] { data, null!, par.Endianness };
+        var ret = (bool)typeof(Bytes).GetMethod(nameof(_TryReadIBinaryObjectS), BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(par.Type)!.Invoke(null, parm)!;
         result = parm[1];
         return ret && result is not null;
     }
@@ -432,30 +417,24 @@ public static class Bytes
     private static bool _TryReadIBinaryObjectS<T>(Stream str, out T? result, Endianness endianness) where T : IBinaryObject<T>
         => T.TryReadFromBinary(str, out result, endianness);
 
-    private static int TryReadIBinaryIntegerSpan<T>(ReadOnlySpan<byte> span, [NotNullWhen(true)] out T? result, Endianness endianness, bool signed) where T : IBinaryInteger<T>
+    private static int TryReadIBinaryIntegerSpan<T>(ReadOnlySpan<byte> span, [NotNullWhen(true)] out T? result, BytesParam par, bool signed) where T : IBinaryInteger<T>
     {
         result = default;
         int size = Marshal.SizeOf<T>();
         span = span[..size];
 
-        if (endianness switch
-        {
-            Endianness.Big => T.TryReadBigEndian(span, !signed, out result),
-            Endianness.Little => T.TryReadLittleEndian(span, !signed, out result),
-            Endianness.Default => IsDefaultLE ? T.TryReadLittleEndian(span, !signed, out result) : T.TryReadBigEndian(span, !signed, out result),
-            _ => false,
-        })
+        if (par.GetEndianness(DefaultEndianness) == Endianness.Little ? T.TryReadLittleEndian(span, !signed, out result) : T.TryReadBigEndian(span, !signed, out result))
             return size;
         return -1;
     }
 
-    private static bool TryReadIBinaryIntegerStream<T>(Stream str, [NotNullWhen(true)] out T? result, Endianness endianness, bool signed) where T : IBinaryInteger<T>
+    private static bool TryReadIBinaryIntegerStream<T>(Stream str, [NotNullWhen(true)] out T? result, BytesParam par, bool signed) where T : IBinaryInteger<T>
     {
         int size = Marshal.SizeOf<T>();
         Span<byte> buffer = stackalloc byte[size];
         str.Read(buffer);
 
-        return TryReadIBinaryIntegerSpan(buffer, out result, endianness, signed) >= 0;
+        return TryReadIBinaryIntegerSpan(buffer, out result, par, signed) >= 0;
     }
 
     /// <summary>
@@ -464,12 +443,12 @@ public static class Bytes
     /// <typeparam name="T">Type of the value to convert</typeparam>
     /// <param name="value">value to convert</param>
     /// <param name="result">Where the bytes will be written</param>
-    /// <param name="endianness">Byte order of the conversion</param>
+    /// <param name="par">the conversion parameters, null creates default conversion parameters</param>
     /// <returns>number of written bytes</returns>
     /// <exception cref="ArgumentException">thrown for unsupported types</exception>
-    public static int From<T>(T? value, Span<byte> result, Endianness endianness = Endianness.Default)
+    public static int From<T>(T? value, Span<byte> result, BytesParam? par = null)
     {
-        var ret = TryFrom(value, result, typeof(T), endianness);
+        var ret = TryFrom(value, result, typeof(T), par);
         return ret < 0
             ? throw new ArgumentException("Cannot convert to this value type", nameof(value))
             : ret;
@@ -480,12 +459,12 @@ public static class Bytes
     /// </summary>
     /// <param name="value">value to convert</param>
     /// <param name="result">Where the bytes will be written</param>
-    /// <param name="endianness">Byte order of the conversion</param>
+    /// <param name="par">the conversion parameters, null creates default conversion parameters</param>
     /// <returns>number of written bytes</returns>
     /// <exception cref="ArgumentException">thrown for unsupported types</exception>
-    public static int From(object? value, Span<byte> result, Endianness endianness = Endianness.Default)
+    public static int From(object? value, Span<byte> result, BytesParam? par = null)
     {
-        var ret = TryFrom(value, result, endianness);
+        var ret = TryFrom(value, result, par);
         return ret < 0
             ? throw new ArgumentException("Cannot convert to this value type", nameof(value))
             : ret;
@@ -497,52 +476,52 @@ public static class Bytes
     /// <typeparam name="T">Type of the value to convert</typeparam>
     /// <param name="value">value to convert</param>
     /// <param name="result">Where the bytes will be written</param>
-    /// <param name="endianness">Byte order of the conversion</param>
+    /// <param name="par">the conversion parameters, null creates default conversion parameters</param>
     /// <returns>number of written bytes, -1 on error</returns>
-    public static int TryFrom<T>(T? value, Span<byte> result, Endianness endianness = Endianness.Default)
-        => TryFrom(value, result, typeof(T), endianness);
+    public static int TryFrom<T>(T? value, Span<byte> result, BytesParam? par = null)
+        => TryFrom(value, result, typeof(T), par);
 
     /// <summary>
     /// Converts the value into byte array
     /// </summary>
     /// <param name="value">value to convert</param>
     /// <param name="result">Where the bytes will be written</param>
-    /// <param name="endianness">Byte order of the conversion</param>
+    /// <param name="par">the conversion parameters, null creates default conversion parameters</param>
     /// <returns>number of written bytes, -1 on error</returns>
-    public static int TryFrom(object? value, Span<byte> result, Endianness endianness = Endianness.Default)
-        => TryFrom(value, result, value?.GetType()!, endianness);
+    public static int TryFrom(object? value, Span<byte> result, BytesParam? par = null)
+        => TryFrom(value, result, value?.GetType()!, par);
 
-    private static int TryFrom(object? value, Span<byte> result, Type type, Endianness endianness)
+    private static int TryFrom(object? value, Span<byte> result, Type type, BytesParam? par)
+    {
+        par ??= new();
+        par.Type = type;
+        return TryFrom_(value, result, par);
+    }
+
+    private static int TryFrom_(object? value, Span<byte> result, BytesParam par)
     {
         if (value is null)
             return -1;
         int len;
-        if ((len = TryWriteBinaryAttribute(value, result, type, endianness)) >= 0)
+        if ((len = TryWriteBinaryAttribute(value, result, par)) >= 0)
             return len;
-        if ((len = TryWriteIBinaryObjectWrite(value, result, endianness)) >= 0)
+        if ((len = TryWriteIBinaryObjectWrite(value, result, par)) >= 0)
             return len;
-        if ((len = TryWriteIBinaryInteger(value, result, type, endianness)) >= 0)
+        if ((len = TryWriteIBinaryInteger(value, result, par)) >= 0)
             return len;
         return -1;
     }
 
-    private static int TryWriteIBinaryObjectWrite(object value, Span<byte> result, Endianness endianness = Endianness.Default)
+    private static int TryWriteBinaryAttribute(object value, Span<byte> result, BytesParam par)
     {
-        if (value is not IBinaryObjectWrite bow)
-            return -1;
-        return bow.TryWriteToBinary(result, endianness);
-    }
-
-    private static int TryWriteBinaryAttribute(object value, Span<byte> result, Type type, Endianness endianness)
-    {
-        if (!TryExtractAttribute(type, out var attrib, ref endianness, out var members))
+        if (!TryExtractAttribute(par, out var attrib, out var endianness, out var members))
             return -1;
 
         int bytesWritten = 0;
         foreach (var m in members)
         {
             var end = m.Attrib.Endianness == Endianness.Default ? endianness : m.Attrib.Endianness;
-            var wb = TryFrom(m.GetValue(value)!, result, m.MemberType, end);
+            var wb = TryFrom_(m.GetValue(value)!, result, par with { Type = m.MemberType, Endianness = end });
             if (wb < 0)
                 return -1;
             result = result[wb..];
@@ -552,17 +531,18 @@ public static class Bytes
         return bytesWritten;
     }
 
-    private static int TryWriteIBinaryInteger(object data, Span<byte> result, Type type, Endianness endianness)
+    private static int TryWriteIBinaryObjectWrite(object value, Span<byte> result, BytesParam par)
     {
-        string mname = endianness switch
-        {
-            Endianness.Big => nameof(_TryWriteIBinaryIntegerBE),
-            Endianness.Little => nameof(_TryWriteIBinaryIntegerLE),
-            Endianness.Default => IsDefaultLE ? nameof(_TryWriteIBinaryIntegerLE) : nameof(_TryWriteIBinaryIntegerBE),
-            _ => throw new ArgumentException("Invalid endianness value", nameof(endianness)),
-        };
+        if (value is not IBinaryObjectWrite bow)
+            return -1;
+        return bow.TryWriteToBinary(result, par.Endianness);
+    }
 
-        var bi = type.GetInterfaces().FirstOrDefault(p => p.FullName is not null && p.FullName.Contains("System.Numerics.IBinaryInteger"));
+    private static int TryWriteIBinaryInteger(object data, Span<byte> result, BytesParam par)
+    {
+        string mname = par.GetEndianness() == Endianness.Little ? nameof(_TryWriteIBinaryIntegerLE) : nameof(_TryWriteIBinaryIntegerBE);
+
+        var bi = par.Type.GetInterfaces().FirstOrDefault(p => p.FullName is not null && p.FullName.Contains("System.Numerics.IBinaryInteger"));
         if (bi is null)
             return -1;
 
@@ -573,7 +553,7 @@ public static class Bytes
                 return -1;
 
             var parm = new object[] { data, new SizedPointer<byte>(result), null! };
-            var res = (bool)typeof(Bytes).GetMethod(mname, BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(type)!.Invoke(null, parm)!;
+            var res = (bool)typeof(Bytes).GetMethod(mname, BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(par.Type)!.Invoke(null, parm)!;
 
             return res ? (int)parm[2] : -1;
         }
@@ -589,11 +569,11 @@ public static class Bytes
     /// <typeparam name="T">Type of the value to convert</typeparam>
     /// <param name="value">vylue to convert</param>
     /// <param name="output">Where the bytes will be written</param>
-    /// <param name="endianness">Byte order of the conversion</param>
+    /// <param name="par">the conversion parameters, null creates default conversion parameters</param>
     /// <exception cref="ArgumentException">thrown for unsupported types</exception>
-    public static void From<T>(T? value, Stream output, Endianness endianness = Endianness.Default)
+    public static void From<T>(T? value, Stream output, BytesParam? par = null)
     {
-        if (!TryFrom(value, output, typeof(T), endianness))
+        if (!TryFrom(value, output, typeof(T), par))
             throw new ArgumentException("Cannot convert to this value type from stream", nameof(value));
     }
 
@@ -602,11 +582,11 @@ public static class Bytes
     /// </summary>
     /// <param name="value">vylue to convert</param>
     /// <param name="output">Where the bytes will be written</param>
-    /// <param name="endianness">Byte order of the conversion</param>
+    /// <param name="par">the conversion parameters, null creates default conversion parameters</param>
     /// <exception cref="ArgumentException">thrown for unsupported types</exception>
-    public static void From(object? value, Stream output, Endianness endianness = Endianness.Default)
+    public static void From(object? value, Stream output, BytesParam? par = null)
     {
-        if (!TryFrom(value, output, value?.GetType()!, endianness))
+        if (!TryFrom(value, output, value?.GetType()!, par))
             throw new ArgumentException("Cannot convert to this value type from stream", nameof(value));
     }
 
@@ -616,63 +596,70 @@ public static class Bytes
     /// <typeparam name="T">Type of the value to convert</typeparam>
     /// <param name="value">value to convert</param>
     /// <param name="output">Where the bytes will be written</param>
-    /// <param name="endianness">Byte order of the conversion</param>
+    /// <param name="par">the conversion parameters, null creates default conversion parameters</param>
     /// <returns>true on success, otherwise false</returns>
-    public static bool TryFrom<T>(T? value, Stream output, Endianness endianness = Endianness.Default)
-        => TryFrom(value, output, typeof(T), endianness);
+    public static bool TryFrom<T>(T? value, Stream output, BytesParam? par = null)
+        => TryFrom(value, output, typeof(T), par);
 
     /// <summary>
     /// Converts the value into bytes and writes it to a stream
     /// </summary>
     /// <param name="value">value to convert</param>
     /// <param name="output">Where the bytes will be written</param>
-    /// <param name="endianness">Byte order of the conversion</param>
+    /// <param name="par">the conversion parameters, null creates default conversion parameters</param>
     /// <returns>true on success, otherwise false</returns>
-    public static bool TryFrom(object? value, Stream output, Endianness endianness = Endianness.Default)
-        => TryFrom(value, output, value?.GetType()!, endianness);
+    public static bool TryFrom(object? value, Stream output, BytesParam? par = null)
+        => TryFrom(value, output, value?.GetType()!, par);
 
-    private static bool TryFrom(object? value, Stream output, Type type, Endianness endianness = Endianness.Default)
+    private static bool TryFrom(object? value, Stream output, Type type, BytesParam? par)
+    {
+        par ??= new();
+        par.Type = type;
+        return TryFrom_(value, output, par);
+    }
+
+    private static bool TryFrom_(object? value, Stream output, BytesParam par)
     {
         if (value is null)
             return false;
-        if (TryWriteBinaryObjectAttribute(value, output, type, endianness))
+        if (TryWriteBinaryObjectAttribute(value, output, par))
             return true;
-        if (TryWriteIBinaryObjectWrite(value, output, endianness))
+        if (TryWriteIBinaryObjectWrite(value, output, par))
             return true;
-        if (TryWriteIBinaryInteger(value, output, type, endianness))
+        if (TryWriteIBinaryInteger(value, output, par))
             return true;
         return false;
     }
 
-    private static bool TryWriteBinaryObjectAttribute(object value, Stream output, Type type, Endianness endianness)
+    private static bool TryWriteBinaryObjectAttribute(object value, Stream output, BytesParam par)
     {
-        if (!TryExtractAttribute(type, out var attrib, ref endianness, out var members))
+        if (!TryExtractAttribute(par, out var attrib, out var endianness, out var members))
             return false;
 
         foreach (var m in members)
         {
             var end = m.Attrib.Endianness == Endianness.Default ? endianness : m.Attrib.Endianness;
-            if (!TryFrom(m.GetValue(value)!, output, m.MemberType, end))
+            if (!TryFrom_(m.GetValue(value)!, output, par with { Type = m.MemberType, Endianness = end }))
                 return false;
         }
         return true;
     }
 
-    private static bool TryWriteIBinaryObjectWrite(object value, Stream output, Endianness endianness)
+    private static bool TryWriteIBinaryObjectWrite(object value, Stream output, BytesParam par)
     {
         if (value is not IBinaryObjectWrite bow)
             return false;
 
         var size = bow.WriteSize;
         Span<byte> buffer = new byte[size];
-        bow.TryWriteToBinary(buffer, endianness);
+        bow.TryWriteToBinary(buffer, par.Endianness);
         output.Write(buffer);
         return true;
     }
 
-    private static bool TryWriteIBinaryInteger(object value, Stream output, Type type, Endianness endianness)
+    private static bool TryWriteIBinaryInteger(object value, Stream output, BytesParam par)
     {
-        var interfaces = type.GetInterfaces();
+        var interfaces = par.Type.GetInterfaces();
 
         var intf = interfaces.FirstOrDefault(p => p.FullName is not null && p.FullName.Contains("System.Numerics.IBinaryInteger"));
         if (intf is null)
@@ -681,7 +668,7 @@ public static class Bytes
         int size = (int)intf.GetMethod(nameof(IBinaryInteger<int>.GetByteCount))!.Invoke(value, Array.Empty<object>())!;
 
         Span<byte> buffer = new byte[size];
-        if (TryFrom(value, buffer, type, endianness) < 0)
+        if (TryFrom_(value, buffer, par) < 0)
             return false;
         output.Write(buffer);
         return true;
@@ -692,36 +679,25 @@ public static class Bytes
     private static bool _TryWriteIBinaryIntegerBE<T>(T value, SizedPointer<byte> ptr, out int bytesWritten) where T : IBinaryInteger<T>
         => value.TryWriteBigEndian(ptr, out bytesWritten);
 
-    private static object? CreateInstance(Type type)
-    {
-        try
-        {
-            return Activator.CreateInstance(type);
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
     private static bool TryExtractAttribute(
-        Type type,
+        BytesParam par,
         [NotNullWhen(true)]out BinaryObjectAttribute? attrib,
-        ref Endianness endianness,
+        out Endianness endianness,
         out Span<BinaryMemberAttributeInfo> members)
     {
         members = Array.Empty<BinaryMemberAttributeInfo>().AsSpan();
+        endianness = par.Endianness;
 
-        attrib = type.GetCustomAttribute<BinaryObjectAttribute>();
+        attrib = par.Type.GetCustomAttribute<BinaryObjectAttribute>();
         if (attrib is null)
             return false;
 
-        endianness = attrib.Endianness == Endianness.Default ? (endianness == Endianness.Default ? DefaultEndianness : endianness) : attrib.Endianness;
+        endianness = attrib.Endianness == Endianness.Default ? par.GetEndianness(DefaultEndianness) : attrib.Endianness;
 
         const BindingFlags AllBindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
 
-        members = type.GetFields(AllBindingFlags).Select(p => new BinaryMemberAttributeInfo(p))
-            .Concat(type.GetProperties(AllBindingFlags).Select(p => new BinaryMemberAttributeInfo(p)))
+        members = par.Type.GetFields(AllBindingFlags).Select(p => new BinaryMemberAttributeInfo(p))
+            .Concat(par.Type.GetProperties(AllBindingFlags).Select(p => new BinaryMemberAttributeInfo(p)))
             .Where(p => p.Attrib is not null).OrderBy(p => p.Attrib.Order).ToArray().AsSpan();
 
         return true;
