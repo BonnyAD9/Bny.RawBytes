@@ -1,5 +1,5 @@
 ﻿using Bny.RawBytes;
 using System.Text;
 
-foreach (var e in Encoding.GetEncodings())
-    Console.WriteLine($"{e.DisplayName} --- {e.Name}");
+var arr = new byte[] { 0x61, 0x68, 0x6f, 0x6a };
+Console.WriteLine(Bytes.To<string>(arr));

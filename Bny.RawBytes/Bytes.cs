@@ -35,9 +35,10 @@ public static class Bytes
     /// <param name="data">Bytes to convert</param>
     /// <param name="endianness">byte order</param>
     /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type</param>
+    /// <param name="encoding">the default string encoding</param>
     /// <returns>The byte span converted to the type</returns>
-    public static T To<T>(ReadOnlySpan<byte> data, Endianness endianness = Endianness.Default, Sign signed = Sign.Default)
-        => (T)To(data, typeof(T), endianness, signed);
+    public static T To<T>(ReadOnlySpan<byte> data, Endianness endianness = Endianness.Default, Sign signed = Sign.Default, string encoding = "utf-8")
+        => (T)To(data, typeof(T), endianness, signed, encoding);
 
     /// <summary>
     /// Converts byte array to the given type
@@ -47,9 +48,10 @@ public static class Bytes
     /// <param name="readedBytes">number of bytes readed</param>
     /// <param name="endianness">byte order</param>
     /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type</param>
+    /// <param name="encoding">the default string encoding</param>
     /// <returns>The byte span converted to the type</returns>
-    public static T To<T>(ReadOnlySpan<byte> data, out int readedBytes, Endianness endianness = Endianness.Default, Sign signed = Sign.Default)
-        => (T)To(data, typeof(T), out readedBytes, endianness, signed);
+    public static T To<T>(ReadOnlySpan<byte> data, out int readedBytes, Endianness endianness = Endianness.Default, Sign signed = Sign.Default, string encoding = "utf-8")
+        => (T)To(data, typeof(T), out readedBytes, endianness, signed, encoding);
 
     /// <summary>
     /// Converts byte array to the given type
@@ -58,10 +60,11 @@ public static class Bytes
     /// <param name="type">Type to convert to</param>
     /// <param name="endianness">byte order</param>
     /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type, some types might ignore this</param>
+    /// <param name="encoding">the default string encoding</param>
     /// <returns>The byte span converted to the type</returns>
     /// <exception cref="ArgumentException">Thrown for unsuported types</exception>
-    public static object To(ReadOnlySpan<byte> data, Type type, Endianness endianness = Endianness.Default, Sign signed = Sign.Default)
-        => To(data, type, out _, endianness, signed);
+    public static object To(ReadOnlySpan<byte> data, Type type, Endianness endianness = Endianness.Default, Sign signed = Sign.Default, string encoding = "utf-8")
+        => To(data, type, out _, endianness, signed, encoding);
 
     /// <summary>
     /// Converts byte array to the given type
@@ -71,11 +74,12 @@ public static class Bytes
     /// <param name="readedBytes">number of bytes readed</param>
     /// <param name="endianness">byte order</param>
     /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type</param>
+    /// <param name="encoding">the default string encoding</param>
     /// <returns>The byte span converted to the type</returns>
     /// <exception cref="ArgumentException">Thrown for unsuported types</exception>
-    public static object To(ReadOnlySpan<byte> data, Type type, out int readedBytes, Endianness endianness = Endianness.Default, Sign signed = Sign.Default)
+    public static object To(ReadOnlySpan<byte> data, Type type, out int readedBytes, Endianness endianness = Endianness.Default, Sign signed = Sign.Default, string encoding = "utf-8")
     {
-        if ((readedBytes = TryTo(data, type, out var ret, endianness, signed)) >= 0)
+        if ((readedBytes = TryTo(data, type, out var ret, endianness, signed, encoding)) >= 0)
             return ret!;
         throw new ArgumentException("Cannot convert to this value type from stream", nameof(type));
     }
@@ -88,10 +92,11 @@ public static class Bytes
     /// <param name="result">the result, not null when returns positive</param>
     /// <param name="endianness">byte order</param>
     /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type</param>
+    /// <param name="encoding">the default string encoding</param>
     /// <returns>The byte span converted to the type</returns>
-    public static int TryTo<T>(ReadOnlySpan<byte> data, out T? result, Endianness endianness = Endianness.Default, Sign signed = Sign.Default)
+    public static int TryTo<T>(ReadOnlySpan<byte> data, out T? result, Endianness endianness = Endianness.Default, Sign signed = Sign.Default, string encoding = "utf-8")
     {
-        var ret = TryTo(data, typeof(T), out var res, endianness, signed);
+        var ret = TryTo(data, typeof(T), out var res, endianness, signed, encoding);
         result = (T?)res;
         return ret;
     }
@@ -104,14 +109,15 @@ public static class Bytes
     /// <param name="result">the converted value</param>
     /// <param name="endianness">byte order</param>
     /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type, some types might ignore this</param>
+    /// <param name="encoding">the default string encoding</param>
     /// <returns>number of readed bytes on success, otherwise negative</returns>
-    public static int TryTo(ReadOnlySpan<byte> data, Type type, out object? result, Endianness endianness = Endianness.Default, Sign signed = Sign.Default)
+    public static int TryTo(ReadOnlySpan<byte> data, Type type, out object? result, Endianness endianness = Endianness.Default, Sign signed = Sign.Default, string encoding = "utf-8")
     {
         int rb;
 
-        if ((rb = TryReadBasicSpan(data, out result, type, endianness, signed)) >= 0)
+        if ((rb = TryReadBasicSpan(data, out result, type, endianness, signed, encoding)) >= 0)
             return rb;
-        if ((rb = TryReadBinaryObjectAttribute(data, out result, type, endianness)) >= 0)
+        if ((rb = TryReadBinaryObjectAttribute(data, out result, type, endianness, encoding)) >= 0)
             return rb;
         if ((rb = TryReadIBinaryObject(data, out result, type, endianness)) >= 0)
             return rb;
@@ -120,8 +126,18 @@ public static class Bytes
         return -1;
     }
 
-    private static int TryReadBasicSpan(ReadOnlySpan<byte> data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness, Sign signed = Sign.Default)
+    private static int TryReadBasicSpan(ReadOnlySpan<byte> data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness, Sign signed = Sign.Default, string encoding = "utf-8")
     {
+        result = null;
+        if (type == typeof(string))
+        {
+            var e = BinaryEncoding.TryGet(encoding);
+            if (e is null)
+                return -1;
+            result = e.GetString(data);
+            return data.Length;
+        }
+
         result = CreateInstance(type);
         if (result is null)
             return -1;
@@ -166,7 +182,7 @@ public static class Bytes
         };
     }
 
-    private static int TryReadBinaryObjectAttribute(ReadOnlySpan<byte> data, out object? result, Type type, Endianness endianness)
+    private static int TryReadBinaryObjectAttribute(ReadOnlySpan<byte> data, out object? result, Type type, Endianness endianness, string encoding = "utf-8")
     {
         result = null;
         if (!TryExtractAttribute(type, out var attrib, ref endianness, out var members))
@@ -190,7 +206,7 @@ public static class Bytes
                 d = d[..m.Attrib.Size];
             }
 
-            int rb = TryTo(d, m.MemberType, out var res, end, m.Attrib.Signed);
+            int rb = TryTo(d, m.MemberType, out var res, end, m.Attrib.Signed, encoding);
             if (rb < 0)
                 return -1;
 
