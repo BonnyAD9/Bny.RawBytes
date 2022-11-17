@@ -40,7 +40,7 @@ public static class Bytes
     /// <param name="endianness">byte order</param>
     /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type</param>
     /// <returns>The byte span converted to the type</returns>
-    public static T To<T>(ReadOnlySpan<byte> data, Endianness endianness = Endianness.Default, bool? signed = null)
+    public static T To<T>(ReadOnlySpan<byte> data, Endianness endianness = Endianness.Default, Sign signed = Sign.Default)
         => (T)To(data, typeof(T), endianness, signed);
 
     /// <summary>
@@ -52,7 +52,7 @@ public static class Bytes
     /// <param name="endianness">byte order</param>
     /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type</param>
     /// <returns>The byte span converted to the type</returns>
-    public static T To<T>(ReadOnlySpan<byte> data, out int readedBytes, Endianness endianness = Endianness.Default, bool? signed = null)
+    public static T To<T>(ReadOnlySpan<byte> data, out int readedBytes, Endianness endianness = Endianness.Default, Sign signed = Sign.Default)
         => (T)To(data, typeof(T), out readedBytes, endianness, signed);
 
     /// <summary>
@@ -64,7 +64,7 @@ public static class Bytes
     /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type, some types might ignore this</param>
     /// <returns>The byte span converted to the type</returns>
     /// <exception cref="ArgumentException">Thrown for unsuported types</exception>
-    public static object To(ReadOnlySpan<byte> data, Type type, Endianness endianness = Endianness.Default, bool? signed = null)
+    public static object To(ReadOnlySpan<byte> data, Type type, Endianness endianness = Endianness.Default, Sign signed = Sign.Default)
         => To(data, type, out _, endianness, signed);
 
     /// <summary>
@@ -77,7 +77,7 @@ public static class Bytes
     /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type</param>
     /// <returns>The byte span converted to the type</returns>
     /// <exception cref="ArgumentException">Thrown for unsuported types</exception>
-    public static object To(ReadOnlySpan<byte> data, Type type, out int readedBytes, Endianness endianness = Endianness.Default, bool? signed = null)
+    public static object To(ReadOnlySpan<byte> data, Type type, out int readedBytes, Endianness endianness = Endianness.Default, Sign signed = Sign.Default)
     {
         if ((readedBytes = TryTo(data, type, out var ret, endianness, signed)) >= 0)
             return ret!;
@@ -93,7 +93,7 @@ public static class Bytes
     /// <param name="endianness">byte order</param>
     /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type</param>
     /// <returns>The byte span converted to the type</returns>
-    public static int TryTo<T>(ReadOnlySpan<byte> data, out T? result, Endianness endianness = Endianness.Default, bool? signed = null)
+    public static int TryTo<T>(ReadOnlySpan<byte> data, out T? result, Endianness endianness = Endianness.Default, Sign signed = Sign.Default)
     {
         var ret = TryTo(data, typeof(T), out var res, endianness, signed);
         result = (T?)res;
@@ -109,7 +109,7 @@ public static class Bytes
     /// <param name="endianness">byte order</param>
     /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type, some types might ignore this</param>
     /// <returns>number of readed bytes on success, otherwise negative</returns>
-    public static int TryTo(ReadOnlySpan<byte> data, Type type, out object? result, Endianness endianness = Endianness.Default, bool? signed = null)
+    public static int TryTo(ReadOnlySpan<byte> data, Type type, out object? result, Endianness endianness = Endianness.Default, Sign signed = Sign.Default)
     {
         int rb;
 
@@ -124,7 +124,7 @@ public static class Bytes
         return -1;
     }
 
-    private static int TryReadBasicSpan(ReadOnlySpan<byte> data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness, bool? signed = null)
+    private static int TryReadBasicSpan(ReadOnlySpan<byte> data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness, Sign signed = Sign.Default)
     {
         result = CreateInstance(type);
         if (result is null)
@@ -134,35 +134,35 @@ public static class Bytes
         switch (result)
         {
             case sbyte n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? true);
+                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed.IsSigned(true));
                 result = n;
                 return ret;
             case byte n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? false);
+                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed.IsSigned(false));
                 result = n;
                 return ret;
             case short n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? true);
+                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed.IsSigned(true));
                 result = n;
                 return ret;
             case ushort n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? false);
+                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed.IsSigned(false));
                 result = n;
                 return ret;
             case int n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? true);
+                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed.IsSigned(true));
                 result = n;
                 return ret;
             case uint n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? false);
+                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed.IsSigned(false));
                 result = n;
                 return ret;
             case long n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? true);
+                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed.IsSigned(true));
                 result = n;
                 return ret;
             case ulong n:
-                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed ?? false);
+                ret = TryReadIBinaryIntegerSpan(data, out n, endianness, signed.IsSigned(false));
                 result = n;
                 return ret;
             default:
@@ -197,7 +197,7 @@ public static class Bytes
         return totalReaded;
     }
 
-    private static int TryReadIBinaryInteger(ReadOnlySpan<byte> data, out object? result, Type type, Endianness endianness, bool? signed)
+    private static int TryReadIBinaryInteger(ReadOnlySpan<byte> data, out object? result, Type type, Endianness endianness, Sign signed)
     {
         result = null;
         string mname = endianness switch
@@ -214,7 +214,7 @@ public static class Bytes
             return -1;
 
         // if the signed value is not set, set it based on whether the type implements ISignedNumber
-        bool isUnsigned = signed.HasValue ? !signed.Value : !interfaces.Any(p => p.FullName is not null && p.FullName.Contains("System.Numerics.ISignedNumber"));
+        bool isUnsigned = !signed.IsSigned(interfaces.Any(p => p.FullName is not null && p.FullName.Contains("System.Numerics.ISignedNumber")));
 
         // use reflection to call wrappers for IBinaryInteger.TryReadLittleEndian or IBinaryInteger.TryReadBigEndian with the type parameter
         var parm = new object[] { new SizedPointer<byte>(data), isUnsigned, null! };
@@ -249,7 +249,7 @@ public static class Bytes
     /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type, some types might ignore this</param>
     /// <returns>The byte span converted to the type</returns>
     /// <exception cref="ArgumentException">Thrown for unsuported types</exception>
-    public static T To<T>(Stream data, Endianness endianness = Endianness.Default, bool? signed = null)
+    public static T To<T>(Stream data, Endianness endianness = Endianness.Default, Sign signed = Sign.Default)
         => (T)To(data, typeof(T), endianness, signed);
 
     /// <summary>
@@ -261,7 +261,7 @@ public static class Bytes
     /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type, some types might ignore this</param>
     /// <returns>The byte span converted to the type</returns>
     /// <exception cref="ArgumentException">Thrown for unsuported types</exception>
-    public static object To(Stream data, Type type, Endianness endianness = Endianness.Default, bool? signed = null)
+    public static object To(Stream data, Type type, Endianness endianness = Endianness.Default, Sign signed = Sign.Default)
     {
         if (TryTo(data, type, out var ret, endianness, signed))
             return ret;
@@ -277,7 +277,7 @@ public static class Bytes
     /// <param name="endianness">byte order</param>
     /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type, some types might ignore this</param>
     /// <returns>true on success, otherwise false</returns>
-    public static bool TryTo<T>(Stream data, [NotNullWhen(true)] out T? result, Endianness endianness = Endianness.Default, bool? signed = null)
+    public static bool TryTo<T>(Stream data, [NotNullWhen(true)] out T? result, Endianness endianness = Endianness.Default, Sign signed = Sign.Default)
     {
         var ret = TryTo(data, typeof(T), out var res, endianness, signed);
         result = (T?)res;
@@ -293,7 +293,7 @@ public static class Bytes
     /// <param name="endianness">byte order</param>
     /// <param name="signed">True if the readed value should be signed, false if not, null to depend on the type, some types might ignore this</param>
     /// <returns>true on success, otherwise false</returns>
-    public static bool TryTo(Stream data, Type type, [NotNullWhen(true)] out object? result, Endianness endianness = Endianness.Default, bool? signed = null)
+    public static bool TryTo(Stream data, Type type, [NotNullWhen(true)] out object? result, Endianness endianness = Endianness.Default, Sign signed = Sign.Default)
     {
         if (TryReadBasicStream(data, out result, type, endianness, signed))
             return true;
@@ -304,7 +304,7 @@ public static class Bytes
         return false;
     }
 
-    private static bool TryReadBasicStream(Stream data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness, bool? signed = null)
+    private static bool TryReadBasicStream(Stream data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness, Sign signed = Sign.Default)
     {
         result = CreateInstance(type);
         if (result is null)
@@ -314,35 +314,35 @@ public static class Bytes
         switch (result)
         {
             case sbyte n:
-                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed ?? true);
+                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed.IsSigned(true));
                 result = n;
                 return ret;
             case byte n:
-                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed ?? false);
+                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed.IsSigned(false));
                 result = n;
                 return ret;
             case short n:
-                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed ?? true);
+                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed.IsSigned(true));
                 result = n;
                 return ret;
             case ushort n:
-                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed ?? false);
+                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed.IsSigned(false));
                 result = n;
                 return ret;
             case int n:
-                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed ?? true);
+                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed.IsSigned(true));
                 result = n;
                 return ret;
             case uint n:
-                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed ?? false);
+                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed.IsSigned(false));
                 result = n;
                 return ret;
             case long n:
-                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed ?? true);
+                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed.IsSigned(true));
                 result = n;
                 return ret;
             case ulong n:
-                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed ?? false);
+                ret = TryReadIBinaryIntegerStream(data, out n, endianness, signed.IsSigned(false));
                 result = n;
                 return ret;
             default:
