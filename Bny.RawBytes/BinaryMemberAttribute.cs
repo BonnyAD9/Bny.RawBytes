@@ -21,13 +21,21 @@ public class BinaryMemberAttribute : Attribute
     private int _order;
 
     /// <summary>
+    /// Specifies whether when reading the value should be signed, works only for IBinaryNumber
+    /// </summary>
+    public bool? Signed => _signed;
+    private bool? _signed;
+
+    /// <summary>
     /// Creates new BinaryFieldAttribute
     /// </summary>
     /// <param name="endianness">prefered byte order of the conversion</param>
+    /// <param name="signed">specifies whether when reading the value should be signed, works only for IBinaryNumber</param>
     /// <param name="order">order of the fields, this is by default the line number</param>
-    public BinaryMemberAttribute(Endianness endianness = Endianness.Default, [CallerLineNumber] int order = 0)
+    public BinaryMemberAttribute(Endianness endianness = Endianness.Default, bool? signed = null, [CallerLineNumber] int order = 0)
     {
         _endianness = endianness;
+        _signed = signed;
         _order = order;
     }
 }

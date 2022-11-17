@@ -185,7 +185,7 @@ public static class Bytes
         foreach (var m in members)
         {
             var end = m.Attrib.Endianness == Endianness.Default ? endianness : m.Attrib.Endianness;
-            int rb = TryTo(data, m.MemberType, out var res, end);
+            int rb = TryTo(data, m.MemberType, out var res, end, m.Attrib.Signed);
             if (rb < 0)
                 return -1;
 
@@ -363,7 +363,7 @@ public static class Bytes
         foreach (var m in membs)
         {
             var end = m.Attrib.Endianness == Endianness.Default ? endianness : m.Attrib.Endianness;
-            if (!TryTo(data, m.MemberType, out var res, end))
+            if (!TryTo(data, m.MemberType, out var res, end, m.Attrib.Signed))
                 return false;
             m.SetValue(result, res);
         }
