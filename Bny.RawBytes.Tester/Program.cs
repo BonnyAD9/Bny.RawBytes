@@ -1,11 +1,9 @@
 ﻿using Bny.RawBytes;
 
-var arr = new byte[8];
+var arr = new byte[] { 0, 2, 0, 0, 0, 2, 0, 0 };
 var s = new MemoryStream(arr);
 
-Bytes.From<BinaryTest>(new() { Width = 512, Height = 131072 }, s, Endianness.Big);
-foreach (var i in arr)
-    Console.WriteLine(i);
+Console.WriteLine(Bytes.To<BinaryTest>(arr, Endianness.Big));
 
 [BinaryObject] // mark this as binary object
 class BinaryTest
@@ -15,11 +13,11 @@ class BinaryTest
     // or you can specify your own order with the Order property
 
     // Width will be readed first and always in little endian byte order
-    [BinaryMember(endianness: Endianness.Little)]
+    [BinaryMember(endianness: Endianness.Little, size: 4)]
     public int Width { get; init; }
 
     // Second will be readed height in the default byte order (big-endian in this case)
-    [BinaryMember]
+    [BinaryMember()]
     public int Height { get; init; }
 
     // members without the attribute are ignored

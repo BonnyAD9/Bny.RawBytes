@@ -1,11 +1,7 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
-using System.Diagnostics.CodeAnalysis;
-using System.Drawing;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 
 namespace Bny.RawBytes;
 
@@ -185,11 +181,22 @@ public static class Bytes
         foreach (var m in members)
         {
             var end = m.Attrib.Endianness == Endianness.Default ? endianness : m.Attrib.Endianness;
-            int rb = TryTo(data, m.MemberType, out var res, end, m.Attrib.Signed);
+
+            var d = data;
+            if (m.Attrib.Size >= 0)
+            {
+                if (m.Attrib.Size > d.Length)
+                    return -1;
+                d = d[..m.Attrib.Size];
+            }
+
+            int rb = TryTo(d, m.MemberType, out var res, end, m.Attrib.Signed);
             if (rb < 0)
                 return -1;
 
             m.SetValue(result, res);
+
+            rb = Math.Max(rb, d.Length);
             data = data[rb..];
             totalReaded += rb;
         }
@@ -363,8 +370,22 @@ public static class Bytes
         foreach (var m in membs)
         {
             var end = m.Attrib.Endianness == Endianness.Default ? endianness : m.Attrib.Endianness;
-            if (!TryTo(data, m.MemberType, out var res, end, m.Attrib.Signed))
-                return false;
+
+            object? res;
+            if (m.Attrib.Size >= 0)
+            {
+                Span<byte> buffer = new byte[m.Attrib.Size];
+                if (data.Read(buffer) != buffer.Length)
+                    return false;
+                if (TryTo(buffer, m.MemberType, out res, end, m.Attrib.Signed) < 0)
+                    return false;
+            }
+            else
+            {
+                if (!TryTo(data, m.MemberType, out res, end, m.Attrib.Signed))
+                    return false;
+            }
+
             m.SetValue(result, res);
         }
         return true;
