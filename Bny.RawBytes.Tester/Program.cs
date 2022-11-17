@@ -1,8 +1,9 @@
 ﻿using Bny.RawBytes;
 
 var arr = new byte[8];
+var s = new MemoryStream(arr);
 
-Bytes.From(new BinaryTest() { Width = 512, Height = 131072 }, arr, Endianness.Big);
+Bytes.From(new BinaryTest() { Width = 512, Height = 131072 }, s, Endianness.Big);
 foreach (var i in arr)
     Console.WriteLine(i);
 

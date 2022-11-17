@@ -1,4 +1,7 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
+using System.Drawing;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -180,9 +183,29 @@ public static class Bytes
         object? obj;
         if (TryReadBasicStream(data, out obj, type, endianness, signed))
             return obj;
+        if (TryReadBinaryObjectAttribute(data, out obj, type, endianness))
+            return obj;
         if (TryReadIBinaryObject(data, out obj, type, endianness))
             return obj;
         throw new ArgumentException("Cannot convert to this value type from stream", nameof(type));
+    }
+
+    private static bool TryReadBinaryObjectAttribute(Stream data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness)
+    {
+        result = null;
+        if (!TryExtractAttribute(type, out var attrib, ref endianness, out var membs))
+            return false;
+
+        result = CreateInstance(type);
+        if (result is null)
+            return false;
+
+        foreach (var m in membs)
+        {
+            var end = m.Attrib.Endianness == Endianness.Default ? endianness : m.Attrib.Endianness;
+            m.SetValue(result, To(data, m.MemberType, end));
+        }
+        return true;
     }
 
     private static bool TryReadIBinaryObject(Stream data, [NotNullWhen(true)] out object? result, Type type, Endianness endianness)
@@ -436,28 +459,51 @@ public static class Bytes
     /// <exception cref="ArgumentException">thrown for unsupported types</exception>
     public static bool From(object value, Stream output, Type type, Endianness endianness = Endianness.Default)
     {
-        int size = -1;
-        byte[] buffer;
-
-        if (value is IBinaryObjectWrite bow)
-        {
-            size = bow.WriteSize;
-            buffer = new byte[size];
-            bow.TryWriteToBinary(buffer, endianness);
-            output.Write(buffer);
+        if (TryWriteBinaryObjectAttribute(value, output, type, endianness))
             return true;
-        }
+        if (TryWriteIBinaryObjectWrite(value, output, endianness))
+            return true;
+        if (TryWriteIBinaryInteger(value, output, type, endianness))
+            return true;
+        throw new ArgumentException("Cannot convert from this value type", nameof(value));
+    }
 
+    private static bool TryWriteBinaryObjectAttribute(object value, Stream output, Type type, Endianness endianness)
+    {
+        if (!TryExtractAttribute(type, out var attrib, ref endianness, out var members))
+            return false;
+
+        foreach (var m in members)
+        {
+            var end = m.Attrib.Endianness == Endianness.Default ? endianness : m.Attrib.Endianness;
+            From(m.GetValue(value)!, output, m.MemberType, end);
+        }
+        return true;
+    }
+
+    private static bool TryWriteIBinaryObjectWrite(object value, Stream output, Endianness endianness)
+    {
+        if (value is not IBinaryObjectWrite bow)
+            return false;
+
+        var size = bow.WriteSize;
+        Span<byte> buffer = new byte[size];
+        bow.TryWriteToBinary(buffer, endianness);
+        output.Write(buffer);
+        return true;
+    }
+
+    private static bool TryWriteIBinaryInteger(object value, Stream output, Type type, Endianness endianness)
+    {
         var interfaces = type.GetInterfaces();
 
         var intf = interfaces.FirstOrDefault(p => p.FullName is not null && p.FullName.Contains("System.Numerics.IBinaryInteger"));
-        if (intf is not null)
-            size = (int)intf.GetMethod(nameof(IBinaryInteger<int>.GetByteCount))!.Invoke(value, Array.Empty<object>())!;
-
-        if (size == -1)
+        if (intf is null)
             return false;
 
-        buffer = new byte[size];
+        int size = (int)intf.GetMethod(nameof(IBinaryInteger<int>.GetByteCount))!.Invoke(value, Array.Empty<object>())!;
+
+        Span<byte> buffer = new byte[size];
         var ret = From(value, buffer, type, endianness) >= 0;
         if (!ret)
             return false;
