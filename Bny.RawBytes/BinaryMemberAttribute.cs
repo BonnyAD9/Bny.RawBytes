@@ -5,7 +5,7 @@ namespace Bny.RawBytes;
 /// <summary>
 /// Represents a binary field in a BinaryObject
 /// </summary>
-[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
 public class BinaryMemberAttribute : Attribute
 {
     /// <summary>
