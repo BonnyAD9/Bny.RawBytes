@@ -204,11 +204,13 @@ public static class Bytes
         foreach (var m in members)
         {
             var d = data;
+            int sizeLimit = -1;
             if (m.Attrib.Size >= 0)
             {
                 if (m.Attrib.Size > d.Length)
                     return -1;
                 d = d[..m.Attrib.Size];
+                sizeLimit = m.Attrib.Size;
             }
 
             int rb = TryTo(d, out var res, m.CreatePar(objPar));
@@ -217,7 +219,7 @@ public static class Bytes
 
             m.SetValue(result, res);
 
-            rb = Math.Max(rb, d.Length);
+            rb = Math.Max(rb, sizeLimit);
             data = data[rb..];
             totalReaded += rb;
         }

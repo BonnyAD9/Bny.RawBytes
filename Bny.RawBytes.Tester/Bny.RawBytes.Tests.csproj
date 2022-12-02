@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Bny.UnitTests" Version="1.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Bny.RawBytes\Bny.RawBytes.csproj" />
   </ItemGroup>
 

@@ -125,7 +125,7 @@ public abstract class BinaryEncoding
         var buffer = new byte[_nullTerminator.Length];
         while (s.Read(buffer) == _nullTerminator.Length && !NullTerminator.StartsWith(buffer))
             data.AddRange(buffer);
-        readedBytes = data.Count;
+        readedBytes = data.Count + _nullTerminator.Length;
         return GetString(CollectionsMarshal.AsSpan(data));
     }
 

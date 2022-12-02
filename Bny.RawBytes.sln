@@ -5,7 +5,7 @@ VisualStudioVersion = 17.2.32630.192
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bny.RawBytes", "Bny.RawBytes\Bny.RawBytes.csproj", "{316B2221-A40E-44E0-9239-EC40D9EF2574}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bny.RawBytes.Tester", "Bny.RawBytes.Tester\Bny.RawBytes.Tester.csproj", "{5A2F0A8A-6B63-4B7F-A245-FF8227501440}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bny.RawBytes.Tests", "Bny.RawBytes.Tester\Bny.RawBytes.Tests.csproj", "{5A2F0A8A-6B63-4B7F-A245-FF8227501440}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
