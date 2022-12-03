@@ -43,13 +43,15 @@ public record BytesParam(Endianness Endianness = Endianness.Default, Sign Sign =
         if (enc is null)
             return -1;
 
+        if (NullTerminated)
+            str += '\0';
+
         ReadOnlySpan<byte> strb = enc.GetBytes(str);
-        if (strb.Length + enc.NullTerminator.Length > result.Length)
+        if (strb.Length > result.Length)
             return -1;
 
         strb.CopyTo(result);
-        enc.NullTerminator.CopyTo(result[strb.Length..]);
-        return strb.Length + enc.NullTerminator.Length;
+        return strb.Length;
     }
 
     internal bool GetBytes(string str, Stream output)
@@ -59,7 +61,8 @@ public record BytesParam(Endianness Endianness = Endianness.Default, Sign Sign =
             return false;
 
         output.Write(enc.GetBytes(str));
-        output.Write(enc.NullTerminator);
+        if (NullTerminated)
+            output.Write(enc.NullTerminator);
         return true;
     }
 

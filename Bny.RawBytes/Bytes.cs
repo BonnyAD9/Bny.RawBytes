@@ -328,6 +328,8 @@ public static class Bytes
             return true;
         if (TryReadIBinaryObject(data, out result, par))
             return true;
+        if (TryReadIBinaryInteger(data, out result, par))
+            return true;
         return false;
     }
 
@@ -442,6 +444,18 @@ public static class Bytes
         var ret = (bool)typeof(Bytes).GetMethod(nameof(TryReadIBinaryObjectSWrapper), BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(par.Type)!.Invoke(null, parm)!;
         result = parm[1];
         return ret && result is not null;
+    }
+
+    private static bool TryReadIBinaryInteger(Stream data, [NotNullWhen(true)] out object? result, BytesParam par)
+    {
+        var buffer = new byte[128];
+        using MemoryStream ms = new();
+
+        int len;
+        do ms.Write(buffer, 0, len = data.Read(buffer));
+        while (len == buffer.Length);
+
+        return TryReadIBinaryInteger(ms.GetBuffer().AsSpan()[..(int)ms.Position], out result, par) == ms.Position;
     }
 
     // Wrappers for IBinaryInteger TryRead methods with SizedPointer as parameter instead of Span
