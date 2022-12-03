@@ -42,10 +42,20 @@ internal class BinaryEncodingTests
         var utf8 = BinaryEncoding.TryGet("utf-8")!;
 
         a.Assert(utf8.GetString("Hello\0World"u8) == "Hello\0World");
-        a.Assert(utf8.GetString("Hello\0World"u8, out int spanReadedBytes) == "Hello");
+
+        a.Assert(utf8.GetString(
+            "Hello\0World"u8,
+            out int spanReadedBytes) == "Hello");
+
         a.Assert(spanReadedBytes == "Hello\0".Length);
-        a.Assert(utf8.GetString(new MemoryStream("Hello\0World"u8.ToArray())) == "Hello\0World");
-        a.Assert(utf8.GetString(new MemoryStream("Hello\0World"u8.ToArray()), out int streamReadedBytes) == "Hello");
+
+        a.Assert(
+            utf8.GetString(new MemoryStream("Hello\0World"u8.ToArray())) ==
+            "Hello\0World");
+
+        a.Assert(utf8.GetString(new MemoryStream("Hello\0World"u8.ToArray()),
+            out int streamReadedBytes) == "Hello");
+
         a.Assert(streamReadedBytes== "Hello\0".Length);
     }
 
@@ -54,7 +64,9 @@ internal class BinaryEncodingTests
     {
         var utf8 = BinaryEncoding.TryGet("utf-8")!;
 
-        a.Assert(Check.AreSame(utf8.GetBytes("Hello\0World"), "Hello\0World"u8.ToArray()));
+        a.Assert(Check.AreSame(
+            utf8.GetBytes("Hello\0World"),
+            "Hello\0World"u8.ToArray()));
     }
 
     [UnitTest]
@@ -67,8 +79,12 @@ internal class BinaryEncodingTests
 
             a.Assert(e.GetString(bytes) == "Hello\0World");
             a.Assert(e.GetString(bytes, out _) == "Hello");
-            a.Assert(e.GetString(new MemoryStream(bytes, false)) == "Hello\0World");
-            a.Assert(e.GetString(new MemoryStream(bytes, false), out _) == "Hello");
+
+            a.Assert(e.GetString(new MemoryStream(bytes, false)) ==
+                "Hello\0World");
+
+            a.Assert(e.GetString(new MemoryStream(bytes, false), out _) ==
+                "Hello");
         }
     }
 }

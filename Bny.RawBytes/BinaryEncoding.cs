@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Bny.RawBytes;
@@ -12,7 +11,10 @@ public abstract class BinaryEncoding
     /// <summary>
     /// Collection of all encodings
     /// </summary>
-    public static Dictionary<string, BinaryEncoding> Encodings { get; } = new();
+    public static Dictionary<string, BinaryEncoding> Encodings
+    {
+        get;
+    } = new();
 
     static BinaryEncoding()
     {
@@ -56,14 +58,16 @@ public abstract class BinaryEncoding
     /// Adds the given encoding to the encodings
     /// </summary>
     /// <param name="encoding"></param>
-    public static void Add(BinaryEncoding encoding) => Encodings[encoding.Name] = encoding;
+    public static void Add(BinaryEncoding encoding)
+        => Encodings[encoding.Name] = encoding;
 
     /// <summary>
     /// Tries to get the encoding
     /// </summary>
     /// <param name="name">name of the encoding</param>
     /// <returns>The encoding or null</returns>
-    public static BinaryEncoding? TryGet(string name) => Encodings.GetValueOrDefault(name);
+    public static BinaryEncoding? TryGet(string name)
+        => Encodings.GetValueOrDefault(name);
 
     /// <summary>
     /// Unique name of this encoding
@@ -90,7 +94,9 @@ public abstract class BinaryEncoding
     /// <param name="data">data to decode</param>
     /// <param name="readedBytes">number of decoded bytes</param>
     /// <returns>Decoded string</returns>
-    public virtual string GetString(ReadOnlySpan<byte> data, out int readedBytes)
+    public virtual string GetString(
+            ReadOnlySpan<byte> data       ,
+        out int                readedBytes)
     {
         int ind = data.LenIndexOf(NullTerminator);
         if (ind >= 0)
@@ -114,17 +120,23 @@ public abstract class BinaryEncoding
     }
 
     /// <summary>
-    /// Reads data from the string until a null character and decodes them to a string
+    /// Reads data from the string until a null character
+    /// and decodes them to a string
     /// </summary>
     /// <param name="s">Stream to read from</param>
-    /// <param name="readedBytes">Number of bytes readed from the string</param>
+    /// <param name="readedBytes">
+    /// Number of bytes readed from the string
+    /// </param>
     /// <returns>The decoded string</returns>
     public virtual string GetString(Stream s, out int readedBytes)
     {
         List<byte> data = new();
         var buffer = new byte[_nullTerminator.Length];
-        while (s.Read(buffer) == _nullTerminator.Length && !NullTerminator.StartsWith(buffer))
+
+        while ( s.Read(buffer) == _nullTerminator.Length &&
+               !NullTerminator.StartsWith(buffer))
             data.AddRange(buffer);
+
         readedBytes = data.Count + _nullTerminator.Length;
         return GetString(CollectionsMarshal.AsSpan(data));
     }

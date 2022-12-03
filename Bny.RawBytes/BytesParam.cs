@@ -6,8 +6,14 @@
 /// <param name="Endianness">Byte order of the operation</param>
 /// <param name="Sign">The prefered sign for IBinaryNumbers</param>
 /// <param name="Encoding">The default encoding for strings</param>
-/// <param name="NullTerminated">Determines whether the strings are null terminated</param>
-public record BytesParam(Endianness Endianness = Endianness.Default, Sign Sign = Sign.Default, string Encoding = "utf-8", bool NullTerminated = false)
+/// <param name="NullTerminated">
+/// Determines whether the strings are null terminated
+/// </param>
+public record BytesParam(
+    Endianness Endianness     = Endianness.Default,
+    Sign       Sign           = Sign.Default      ,
+    string     Encoding       = "utf-8"           ,
+    bool       NullTerminated = false             )
 {
     // to silence the warning
     private Type? _type;
@@ -17,10 +23,18 @@ public record BytesParam(Endianness Endianness = Endianness.Default, Sign Sign =
         set => _type = value;
     }
 
-    internal bool IsSigned(bool def) => Sign == Sign.Default ? def : Sign == Sign.Signed;
-    internal Endianness GetEndianness(Endianness def) => Endianness == Endianness.Default ? def : Endianness;
-    internal Endianness GetEndiannessTo(Endianness other) => other == Endianness.Default ? Endianness : other;
-    internal Endianness GetEndianness() => GetEndianness(Bytes.DefaultEndianness);
+    internal bool IsSigned(bool def)
+        => Sign == Sign.Default ? def : Sign == Sign.Signed;
+
+    internal Endianness GetEndianness(Endianness def)
+        => Endianness == Endianness.Default ? def : Endianness;
+
+    internal Endianness GetEndiannessTo(Endianness other)
+        => other == Endianness.Default ? Endianness : other;
+
+    internal Endianness GetEndianness()
+        => GetEndianness(Bytes.DefaultEndianness);
+
     internal BinaryEncoding? GetEncoding() => BinaryEncoding.TryGet(Encoding);
 
     internal string? GetString(ReadOnlySpan<byte> data, out int bytesReaded)

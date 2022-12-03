@@ -27,8 +27,10 @@ public class NetBinaryEncoding : BinaryEncoding
     public override string Name => Encoding.Name;
 
     /// <inheritdoc/>
-    public override string GetString(ReadOnlySpan<byte> data) => Encoding.GetEncoding().GetString(data);
+    public override string GetString(ReadOnlySpan<byte> data)
+        => Encoding.GetEncoding().GetString(data);
 
     /// <inheritdoc/>
-    public override byte[] GetBytes(string str) => Encoding.GetEncoding().GetBytes(str);
+    public override byte[] GetBytes(string str)
+        => Encoding.GetEncoding().GetBytes(str);
 }

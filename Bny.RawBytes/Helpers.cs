@@ -2,7 +2,9 @@
 
 internal static class Helpers
 {
-    public static int LenIndexOf(this ReadOnlySpan<byte> span, ReadOnlySpan<byte> value)
+    public static int LenIndexOf(
+        this ReadOnlySpan<byte> span ,
+             ReadOnlySpan<byte> value)
     {
         for (int i = 0; i < span.Length; i += value.Length)
         {

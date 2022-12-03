@@ -1,6 +1,5 @@
 ﻿using System.Numerics;
 using System.Text;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Bny.RawBytes.Tests;
 
@@ -15,13 +14,23 @@ internal class BytesTests
 
         public int WriteSize => ReadSize;
 
-        public static int TryReadFromBinary(ReadOnlySpan<byte> data, out SimpleIBOClass? result, Endianness endianness = Endianness.Default)
+        public static int TryReadFromBinary(
+            ReadOnlySpan<byte> data                   ,
+            out SimpleIBOClass? result                ,
+            Endianness endianness = Endianness.Default)
         {
-            result = new() { Value = Bytes.To<int>(data, out int readedBytes, new(Endianness: endianness)) };
+            result = new()
+            {
+                Value = Bytes.To<int>(
+                    data                       ,
+                    out int readedBytes        ,
+                    new(Endianness: endianness))
+            };
             return readedBytes;
         }
 
-        public int TryWriteToBinary(Span<byte> data, Endianness endianness) => Bytes.From(Value, data, new(Endianness: endianness));
+        public int TryWriteToBinary(Span<byte> data, Endianness endianness)
+            => Bytes.From(Value, data, new(Endianness: endianness));
     }
 
     [BinaryObject]
@@ -61,7 +70,9 @@ internal class BytesTests
     {
         a.Assert(Bytes.IsDefaultLE == BitConverter.IsLittleEndian);
         
-        Endianness endianness = BitConverter.IsLittleEndian ? Endianness.Little : Endianness.Big;
+        Endianness endianness = BitConverter.IsLittleEndian
+            ? Endianness.Little
+            : Endianness.Big;
 
         a.Assert(Bytes.DefaultEndianness == endianness);
     }
@@ -69,7 +80,11 @@ internal class BytesTests
     [UnitTest]
     public static void Test_SpanIntBasicTo(Asserter a)
     {
-        ReadOnlySpan<byte> data = new byte[] { 0, 0, 2, 0, 255, 255, 255, 255 };
+        ReadOnlySpan<byte> data = new byte[]
+        {
+            0, 0, 2, 0, 255, 255, 255, 255
+        };
+
         int leResult = 0x20000;
         int beResult = 0x200;
         int defaultResult = Bytes.IsDefaultLE ? leResult : beResult;
@@ -78,30 +93,55 @@ internal class BytesTests
         a.Assert(Bytes.To<int>(data, out int readedBytes) == defaultResult);
         a.Assert(readedBytes == sizeof(int));
         a.Assert((int)Bytes.To(data, typeof(int)) == defaultResult);
-        a.Assert((int)Bytes.To(data, typeof(int), out readedBytes) == defaultResult);
+
+        a.Assert((int)Bytes.To(
+            data           ,
+            typeof(int)    ,
+            out readedBytes) == defaultResult);
+
         a.Assert(readedBytes == sizeof(int));
 
         a.Assert(Bytes.TryTo(data, out int result) == sizeof(int));
         a.Assert(result == defaultResult);
-        a.Assert(Bytes.TryTo(data, typeof(int), out object? objResult) == sizeof(int));
+
+        a.Assert(Bytes.TryTo(
+            data                 ,
+            typeof(int)          ,
+            out object? objResult) == sizeof(int));
+
         a.Assert((int)objResult! == defaultResult);
 
         a.Assert(Bytes.To<int>(data, new(Endianness.Little)) == leResult);
         a.Assert(Bytes.To<int>(data, new(Endianness.Big)) == beResult);
-        a.Assert(Bytes.To<int>(data, new(Endianness.Default)) == defaultResult);
+
+        a.Assert(Bytes.To<int>(
+            data                   ,
+            new(Endianness.Default)) == defaultResult);
     }
 
     [UnitTest]
     public static void Test_SpanStringBasicTo(Asserter a)
     {
         a.Assert(Bytes.To<string>("Hello\0World"u8) == "Hello\0World");
-        a.Assert(Bytes.To<string>("Hello\0World"u8, out int readedBytes, new(NullTerminated: true)) == "Hello");
+
+        a.Assert(Bytes.To<string>(
+            "Hello\0World"u8         ,
+            out int readedBytes      ,
+            new(NullTerminated: true)) == "Hello");
+
         a.Assert(readedBytes == "Hello\0".Length);
 
         var utf16Bytes = Encoding.Unicode.GetBytes("Hello\0World");
 
-        a.Assert(Bytes.To<string>(utf16Bytes, new(Encoding: "utf-16")) == "Hello\0World");
-        a.Assert(Bytes.To<string>(utf16Bytes, out readedBytes, new(Encoding: "utf-16", NullTerminated: true)) == "Hello");
+        a.Assert(Bytes.To<string>(
+            utf16Bytes             ,
+            new(Encoding: "utf-16")) == "Hello\0World");
+
+        a.Assert(Bytes.To<string>(
+            utf16Bytes                                   ,
+            out readedBytes                              ,
+            new(Encoding: "utf-16", NullTerminated: true)) == "Hello");
+        
         a.Assert(readedBytes == "Hello\0".Length * 2);
     }
 
@@ -114,30 +154,55 @@ internal class BytesTests
         int defaultResult = Bytes.IsDefaultLE ? leResult : beResult;
 
         a.Assert(Bytes.To<BigInteger>(data) == defaultResult);
-        a.Assert(Bytes.To<BigInteger>(data, new(Endianness: Endianness.Little)) == leResult);
-        a.Assert(Bytes.To<BigInteger>(data, new(Endianness: Endianness.Big)) == beResult);
-        a.Assert(Bytes.To<BigInteger>(data, new(Endianness: Endianness.Default)) == defaultResult);
+
+        a.Assert(Bytes.To<BigInteger>(
+            data                              ,
+            new(Endianness: Endianness.Little)) == leResult);
+
+        a.Assert(Bytes.To<BigInteger>(
+            data                           ,
+            new(Endianness: Endianness.Big)) == beResult);
+
+        a.Assert(Bytes.To<BigInteger>(
+            data                               ,
+            new(Endianness: Endianness.Default)) == defaultResult);
 
         data = new byte[] { 255, 255, 255, 255 };
 
         a.Assert(Bytes.To<BigInteger>(data) == -1);
         a.Assert(Bytes.To<BigInteger>(data, new(Sign: Sign.Default)) == -1);
         a.Assert(Bytes.To<BigInteger>(data, new(Sign: Sign.Signed)) == -1);
-        a.Assert(Bytes.To<BigInteger>(data, new(Sign: Sign.Unsigned)) == uint.MaxValue);
+
+        a.Assert(Bytes.To<BigInteger>(
+            data                    ,
+            new(Sign: Sign.Unsigned)) == uint.MaxValue);
     }
 
     [UnitTest]
     public static void Test_SpanIBinaryObjectTo(Asserter a)
     {
-        ReadOnlySpan<byte> data = new byte[] { 0, 0, 2, 0, 255, 255, 255, 255 };
+        ReadOnlySpan<byte> data = new byte[]
+        {
+            0, 0, 2, 0, 255, 255, 255, 255
+        };
+
         int leResult = 0x20000;
         int beResult = 0x200;
         int defaultResult = Bytes.IsDefaultLE ? leResult : beResult;
 
         a.Assert(Bytes.To<SimpleIBOClass>(data).Value == defaultResult);
-        a.Assert(Bytes.To<SimpleIBOClass>(data, new(Endianness: Endianness.Default)).Value == defaultResult);
-        a.Assert(Bytes.To<SimpleIBOClass>(data, new(Endianness: Endianness.Little)).Value == leResult);
-        a.Assert(Bytes.To<SimpleIBOClass>(data, new(Endianness: Endianness.Big)).Value == beResult);
+
+        a.Assert(Bytes.To<SimpleIBOClass>(
+            data                               ,
+            new(Endianness: Endianness.Default)).Value == defaultResult);
+
+        a.Assert(Bytes.To<SimpleIBOClass>(
+            data                              ,
+            new(Endianness: Endianness.Little)).Value == leResult);
+
+        a.Assert(Bytes.To<SimpleIBOClass>(
+            data                           ,
+            new(Endianness: Endianness.Big)).Value == beResult);
     }
 
     [UnitTest]
@@ -148,14 +213,18 @@ internal class BytesTests
             0, 0, 2, 0, // Property: 0x20000
             0, 2, // field: 2
             0x48, 0x65, 0x6c, 0x6c, 0x6f, 0, // Utf8String: Hello
-            0x00, 0x57, 0x00, 0x6f, 0x00, 0x72, 0x00, 0x6c, 0x00, 0x64, 0, 0, // Utf16String: World
+            // Utf16String: World
+            0x00, 0x57, 0x00, 0x6f, 0x00, 0x72, 0x00, 0x6c, 0x00, 0x64, 0, 0,
             255, 255, 255, 255, // SimpleBoa.Value: -1
             123, 0, 0, 0, // SimpleIBO.Value: 123
             0, 0, 1, 0, 0, // BInteger24: 0x10000
             255, 255, 255, 255, 255, // Some additional data
         };
 
-        var result = Bytes.To<BOAClass>(data, out int readedBytes, new(Endianness: Endianness.Little));
+        var result = Bytes.To<BOAClass>(
+            data                              ,
+            out int readedBytes               ,
+            new(Endianness: Endianness.Little));
 
         a.Assert(readedBytes == data.Length - 5);
         a.Assert(result.Property == 0x20000);
@@ -172,7 +241,11 @@ internal class BytesTests
     [UnitTest]
     public static void Test_StreamIntBasicTo(Asserter a)
     {
-        MemoryStream data = new(new byte[] { 0, 0, 2, 0, 255, 255, 255, 255 }, false);
+        MemoryStream data = new(new byte[]
+        {
+            0, 0, 2, 0, 255, 255, 255, 255
+        }, false);
+
         int leResult = 0x20000;
         int beResult = 0x200;
         int defaultResult = Bytes.IsDefaultLE ? leResult : beResult;
@@ -192,8 +265,11 @@ internal class BytesTests
         a.Assert(Bytes.To<int>(data, new(Endianness.Little)) == leResult);
         data.Position = 0;
         a.Assert(Bytes.To<int>(data, new(Endianness.Big)) == beResult);
+
         data.Position = 0;
-        a.Assert(Bytes.To<int>(data, new(Endianness.Default)) == defaultResult);
+        a.Assert(Bytes.To<int>(
+            data                   ,
+            new(Endianness.Default)) == defaultResult);
     }
 
     [UnitTest]
@@ -203,13 +279,21 @@ internal class BytesTests
 
         a.Assert(Bytes.To<string>(data) == "Hello\0World");
         data.Position = 0;
-        a.Assert(Bytes.To<string>(data, new(NullTerminated: true)) == "Hello");
+        a.Assert(Bytes.To<string>(
+            data                     ,
+            new(NullTerminated: true)) == "Hello");
 
-        MemoryStream utf16Bytes = new(Encoding.Unicode.GetBytes("Hello\0World"), false);
+        MemoryStream utf16Bytes =
+            new(Encoding.Unicode.GetBytes("Hello\0World"), false);
 
-        a.Assert(Bytes.To<string>(utf16Bytes, new(Encoding: "utf-16")) == "Hello\0World");
+        a.Assert(Bytes.To<string>(
+            utf16Bytes             ,
+            new(Encoding: "utf-16")) == "Hello\0World");
+
         utf16Bytes.Position = 0;
-        a.Assert(Bytes.To<string>(utf16Bytes, new(Encoding: "utf-16", NullTerminated: true)) == "Hello");
+        a.Assert(Bytes.To<string>(
+            utf16Bytes                                   ,
+            new(Encoding: "utf-16", NullTerminated: true)) == "Hello");
     }
 
     [UnitTest]
@@ -221,12 +305,21 @@ internal class BytesTests
         int defaultResult = Bytes.IsDefaultLE ? leResult : beResult;
 
         a.Assert(Bytes.To<BigInteger>(data) == defaultResult);
+
         data.Position = 0;
-        a.Assert(Bytes.To<BigInteger>(data, new(Endianness: Endianness.Little)) == leResult);
+        a.Assert(Bytes.To<BigInteger>(
+            data                              ,
+            new(Endianness: Endianness.Little)) == leResult);
+
         data.Position = 0;
-        a.Assert(Bytes.To<BigInteger>(data, new(Endianness: Endianness.Big)) == beResult);
+        a.Assert(Bytes.To<BigInteger>(
+            data                           ,
+            new(Endianness: Endianness.Big)) == beResult);
+
         data.Position = 0;
-        a.Assert(Bytes.To<BigInteger>(data, new(Endianness: Endianness.Default)) == defaultResult);
+        a.Assert(Bytes.To<BigInteger>(
+            data                               ,
+            new(Endianness: Endianness.Default)) == defaultResult);
 
         data = new(new byte[] { 255, 255, 255, 255 }, false);
 
@@ -236,25 +329,41 @@ internal class BytesTests
         a.Assert(Bytes.To<BigInteger>(data, new(Sign: Sign.Default)) == -1);
         data.Position = 0;
         a.Assert(Bytes.To<BigInteger>(data, new(Sign: Sign.Signed)) == -1);
+
         data.Position = 0;
-        a.Assert(Bytes.To<BigInteger>(data, new(Sign: Sign.Unsigned)) == uint.MaxValue);
+        a.Assert(Bytes.To<BigInteger>(
+            data                    ,
+            new(Sign: Sign.Unsigned)) == uint.MaxValue);
     }
 
     [UnitTest]
     public static void Test_StreamIBinaryObjectTo(Asserter a)
     {
-        MemoryStream data = new(new byte[] { 0, 0, 2, 0, 255, 255, 255, 255 }, false);
+        MemoryStream data = new(new byte[]
+        {
+            0, 0, 2, 0, 255, 255, 255, 255
+        }, false);
+
         int leResult = 0x20000;
         int beResult = 0x200;
         int defaultResult = Bytes.IsDefaultLE ? leResult : beResult;
 
         a.Assert(Bytes.To<SimpleIBOClass>(data).Value == defaultResult);
+
         data.Position = 0;
-        a.Assert(Bytes.To<SimpleIBOClass>(data, new(Endianness: Endianness.Default)).Value == defaultResult);
+        a.Assert(Bytes.To<SimpleIBOClass>(
+            data                               ,
+            new(Endianness: Endianness.Default)).Value == defaultResult);
+
         data.Position = 0;
-        a.Assert(Bytes.To<SimpleIBOClass>(data, new(Endianness: Endianness.Little)).Value == leResult);
+        a.Assert(Bytes.To<SimpleIBOClass>(
+            data                              ,
+            new(Endianness: Endianness.Little)).Value == leResult);
+
         data.Position = 0;
-        a.Assert(Bytes.To<SimpleIBOClass>(data, new(Endianness: Endianness.Big)).Value == beResult);
+        a.Assert(Bytes.To<SimpleIBOClass>(
+            data                           ,
+            new(Endianness: Endianness.Big)).Value == beResult);
     }
 
     [UnitTest]
@@ -265,14 +374,17 @@ internal class BytesTests
             0, 0, 2, 0, // Property: 0x20000
             0, 2, // field: 2
             0x48, 0x65, 0x6c, 0x6c, 0x6f, 0, // Utf8String: Hello
-            0x00, 0x57, 0x00, 0x6f, 0x00, 0x72, 0x00, 0x6c, 0x00, 0x64, 0, 0, // Utf16String: World
+            // Utf16String: World
+            0x00, 0x57, 0x00, 0x6f, 0x00, 0x72, 0x00, 0x6c, 0x00, 0x64, 0, 0,
             255, 255, 255, 255, // SimpleBoa.Value: -1
             123, 0, 0, 0, // SimpleIBO.Value: 123
             0, 0, 1, 0, 0, // BInteger24: 0x10000
             255, 255, 255, 255, 255, // Some additional data
         }, false);
 
-        var result = Bytes.To<BOAClass>(data, new(Endianness: Endianness.Little));
+        var result = Bytes.To<BOAClass>(
+            data,
+            new(Endianness: Endianness.Little));
 
         a.Assert(result.Property == 0x20000);
         a.Assert(result.field == 2);
@@ -296,19 +408,37 @@ internal class BytesTests
 
         a.Assert(Bytes.From(defaultData, result) == expectedResult.Length);
         a.Assert(result.StartsWith(expectedResult));
-        a.Assert(Bytes.From((object)defaultData, result) == expectedResult.Length);
+
+        a.Assert(Bytes.From(
+            (object)defaultData,
+            result             ) == expectedResult.Length);
         a.Assert(result.StartsWith(expectedResult));
 
         a.Assert(Bytes.TryFrom(defaultData, result) == expectedResult.Length);
         a.Assert(result.StartsWith(expectedResult));
-        a.Assert(Bytes.TryFrom((object)defaultData, result) == expectedResult.Length);
+
+        a.Assert(Bytes.TryFrom(
+            (object)defaultData,
+            result             ) == expectedResult.Length);
+
         a.Assert(result.StartsWith(expectedResult));
 
-        a.Assert(Bytes.From(leData, result, new(Endianness.Little)) == expectedResult.Length);
+        a.Assert(Bytes.From(
+            leData                ,
+            result                ,
+            new(Endianness.Little)) == expectedResult.Length);
         a.Assert(result.StartsWith(expectedResult));
-        a.Assert(Bytes.From(beData, result, new(Endianness.Big)) == expectedResult.Length);
+
+        a.Assert(Bytes.From(
+            beData             ,
+            result             ,
+            new(Endianness.Big)) == expectedResult.Length);
         a.Assert(result.StartsWith(expectedResult));
-        a.Assert(Bytes.From(defaultData, result, new(Endianness.Default)) == expectedResult.Length);
+
+        a.Assert(Bytes.From(
+            defaultData            ,
+            result                 ,
+            new(Endianness.Default)) == expectedResult.Length);
         a.Assert(result.StartsWith(expectedResult));
     }
 
@@ -324,12 +454,18 @@ internal class BytesTests
 
         expectedResult = Encoding.Unicode.GetBytes("Hello\0World");
 
-        a.Assert(Bytes.From(data, result, new(Encoding: "utf-16")) == expectedResult.Length);
+        a.Assert(Bytes.From(
+            data                   ,
+            result                 ,
+            new(Encoding: "utf-16")) == expectedResult.Length);
         a.Assert(result.StartsWith(expectedResult));
 
         expectedResult = "Hello\0World\0"u8;
 
-        a.Assert(Bytes.From(data, result, new(NullTerminated: true)) == expectedResult.Length);
+        a.Assert(Bytes.From(
+            data                     ,
+            result                   ,
+            new(NullTerminated: true)) == expectedResult.Length);
         a.Assert(result.StartsWith(expectedResult));
     }
 
@@ -344,11 +480,24 @@ internal class BytesTests
 
         a.Assert(Bytes.From(defaultData, result) == expectedResult.Length);
         a.Assert(result.StartsWith(expectedResult));
-        a.Assert(Bytes.From(leData, result, new(Endianness: Endianness.Little)) == expectedResult.Length);
+
+        a.Assert(Bytes.From(
+            leData                            ,
+            result                            ,
+            new(Endianness: Endianness.Little)) == expectedResult.Length);
         a.Assert(result.StartsWith(expectedResult));
-        a.Assert(Bytes.From(beData, result, new(Endianness: Endianness.Big)) == expectedResult.Length);
+
+        a.Assert(Bytes.From(
+            beData                         ,
+            result                         ,
+            new(Endianness: Endianness.Big)) == expectedResult.Length);
         a.Assert(result.StartsWith(expectedResult));
-        a.Assert(Bytes.From(defaultData, result, new(Endianness: Endianness.Default)) == expectedResult.Length);
+
+        a.Assert(Bytes.From(
+            defaultData                        ,
+            result                             ,
+            new(Endianness: Endianness.Default)) == expectedResult.Length);
+        a.Assert(result.StartsWith(expectedResult));
     }
 
     [UnitTest]
@@ -359,7 +508,8 @@ internal class BytesTests
             0, 0, 2, 0, // Property: 0x20000
             0, 2, // field: 2
             0x48, 0x65, 0x6c, 0x6c, 0x6f, 0, // Utf8String: Hello
-            0x00, 0x57, 0x00, 0x6f, 0x00, 0x72, 0x00, 0x6c, 0x00, 0x64, 0, 0, // Utf16String: World
+            // Utf16String: World
+            0x00, 0x57, 0x00, 0x6f, 0x00, 0x72, 0x00, 0x6c, 0x00, 0x64, 0, 0,
             255, 255, 255, 255, // SimpleBoa.Value: -1
             123, 0, 0, 0, // SimpleIBO.Value: 123
             0, 0, 1, 0, // BInteger24: 0x10000
@@ -376,7 +526,10 @@ internal class BytesTests
             BInteger24 = 0x10000,
         };
 
-        a.Assert(Bytes.From(data, result, new(Endianness: Endianness.Little)) == expectedResult.Length);
+        a.Assert(Bytes.From(
+            data                              ,
+            result                            ,
+            new(Endianness: Endianness.Little)) == expectedResult.Length);
         a.Assert(result.StartsWith(expectedResult));
     }
 
@@ -514,7 +667,10 @@ internal class BytesTests
 
         using (MemoryStream output = new())
         {
-            Bytes.From(defaultData, output, new(Endianness: Endianness.Default));
+            Bytes.From(
+                defaultData                        ,
+                output                             ,
+                new(Endianness: Endianness.Default));
             ReadOnlySpan<byte> result = output.ToArray();
             a.Assert(result.Length == expectedResult.Length);
             a.Assert(result.StartsWith(expectedResult));
@@ -529,7 +685,8 @@ internal class BytesTests
             0, 0, 2, 0, // Property: 0x20000
             0, 2, // field: 2
             0x48, 0x65, 0x6c, 0x6c, 0x6f, 0, // Utf8String: Hello
-            0x00, 0x57, 0x00, 0x6f, 0x00, 0x72, 0x00, 0x6c, 0x00, 0x64, 0, 0, // Utf16String: World
+            // Utf16String: World
+            0x00, 0x57, 0x00, 0x6f, 0x00, 0x72, 0x00, 0x6c, 0x00, 0x64, 0, 0,
             255, 255, 255, 255, // SimpleBoa.Value: -1
             123, 0, 0, 0, // SimpleIBO.Value: 123
             0, 0, 1, 0, // BInteger24: 0x10000

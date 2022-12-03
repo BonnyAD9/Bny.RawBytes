@@ -5,7 +5,9 @@ namespace Bny.RawBytes;
 /// <summary>
 /// Represents a binary field in a BinaryObject
 /// </summary>
-[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
+[AttributeUsage(    AttributeTargets.Field | AttributeTargets.Property,
+    AllowMultiple = false                                             ,
+    Inherited     = false                                             )]
 public class BinaryMemberAttribute : Attribute
 {
     /// <summary>
@@ -21,7 +23,8 @@ public class BinaryMemberAttribute : Attribute
     private readonly int _order;
 
     /// <summary>
-    /// Specifies whether when reading the value should be signed, works only for IBinaryNumber
+    /// Specifies whether when reading the value should be signed,
+    /// works only for IBinaryNumber
     /// </summary>
     public Sign Signed => _signed;
     private readonly Sign _signed;
@@ -48,12 +51,29 @@ public class BinaryMemberAttribute : Attribute
     /// Creates new BinaryFieldAttribute
     /// </summary>
     /// <param name="endianness">prefered byte order of the conversion</param>
-    /// <param name="size">Specifies the size when reading, negative for default</param>
-    /// <param name="signed">specifies whether when reading the value should be signed, works only for IBinaryNumber</param>
-    /// <param name="encoding">The string encoding, null for default encoding</param>
-    /// <param name="nullTerminated">Determines whether the string is null terminated</param>
-    /// <param name="order">order of the fields, this is by default the line number</param>
-    public BinaryMemberAttribute(Endianness endianness = Endianness.Default, int size = -1, Sign signed = Sign.Default, string? encoding = null, bool nullTerminated = false, [CallerLineNumber] int order = 0)
+    /// <param name="size">
+    /// Specifies the size when reading, negative for default
+    /// </param>
+    /// <param name="signed">
+    /// specifies whether when reading the value should be signed,
+    /// works only for IBinaryNumber
+    /// </param>
+    /// <param name="encoding">
+    /// The string encoding, null for default encoding
+    /// </param>
+    /// <param name="nullTerminated">
+    /// Determines whether the string is null terminated
+    /// </param>
+    /// <param name="order">
+    /// order of the fields, this is by default the line number
+    /// </param>
+    public BinaryMemberAttribute(
+                           Endianness endianness     = Endianness.Default,
+                           int        size           = -1                ,
+                           Sign       signed         = Sign.Default      ,
+                           string?    encoding       = null              ,
+                           bool       nullTerminated = false             ,
+        [CallerLineNumber] int        order          = 0                 )
     {
         _endianness = endianness;
         _size= size;

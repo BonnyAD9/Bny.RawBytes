@@ -25,7 +25,8 @@ internal class BinaryMemberAttributeInfo
     }
 
     public object? GetValue(object? instance) => _getValue(instance);
-    public void SetValue(object? instance, object? value) => _setValue(instance, value);
+    public void SetValue(object? instance, object? value)
+        => _setValue(instance, value);
 
     public BytesParam CreatePar(BytesParam par) => par with
     {
