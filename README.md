@@ -1,7 +1,11 @@
 # Bny.RawBytes
 C# library for converting from and to bytes. Without the boring repetition.
 
-## Example
+## In this repository
+- **Bny.RawBytes:** the library
+- **Bny.RawBytes.Tester:** unit tests
+
+## How to use
 
 ### Code
 
@@ -40,3 +44,8 @@ class BinaryTest
 ```
 [67108864(512 * 131072)]
 ```
+
+## Links
+- **Author:** [BonnyAD9](https://github.com/BonnyAD9)
+- **GitHub repository:** [Bny.RawBytes](https://github.com/BonnyAD9/Bny.RawBytes)
+- **My Website:** [bonnyad9.github.io](https://bonnyad9.github.io/)
