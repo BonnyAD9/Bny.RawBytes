@@ -48,4 +48,5 @@ class BinaryTest
 ## Links
 - **Author:** [BonnyAD9](https://github.com/BonnyAD9)
 - **GitHub repository:** [Bny.RawBytes](https://github.com/BonnyAD9/Bny.RawBytes)
+- **Documentation:** [Doxygen](https://bonnyad9.github.io/Bny.RawBytes/)
 - **My Website:** [bonnyad9.github.io](https://bonnyad9.github.io/)
