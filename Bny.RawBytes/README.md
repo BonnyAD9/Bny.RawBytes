@@ -2,7 +2,11 @@
 This directory contains the library source code.
 
 ## In this directory
-- **Bytes.cs:** contains the Bytes` static class (contains for example the `Bytes.To` and `Bytes.From` methods)
+- **Bytes.cs:** contains generic stuff in the `Bytes` static class
+- **Bytes.To.Span:** contains the span versions of the `Bytes.To` methods
+- **Bytes.To.Stream:** contains the stream versions of the `Bytes.To` methods
+- **Bytes.From.Span:** contains the span versions of the `Bytes.From` methods
+- **Bytes.From.Stream:** contains the stream versions of the `Bytes.From` methods
 - **BinaryObjectAttribute.cs:** contains the `BinaryObjectAttribute` for marking types that can be converted to binary
 - **BinaryMemberAttribute.cs:** contains the `BinaryMemberAttribute` for marking properties and fields that specify the conversion to binary
 - **BinaryPaddingAttribute.cs:** contains the `BinaryPaddingAttribute` for specifying padding
