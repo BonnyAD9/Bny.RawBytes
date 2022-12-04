@@ -14,5 +14,3 @@ This directory contains the library source code.
 - **NetBinaryEncoding.cs:** contains the `NetBinaryEncoding` class
 - **IBinaryObjectWrite.cs:** contains the `IBinaryObjectWrite` interface that should not be implemented by itself
 - **BinaryMemberAttributeInfo.cs:** contains the iternal `BinaryMemberAttributeInfo` class that helps interpreting the `BinaryMemberAttribute`
-- **Helpers.cs:** contains internal static methods that are needed by some internal tasks
-- **SizedPointer.cs:** contains internal struct `SizedPointer` that wraps span and can be boxed

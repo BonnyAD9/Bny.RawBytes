@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text;
+using Bny.General.Memory;
 
 namespace Bny.RawBytes;
 
@@ -98,7 +99,7 @@ public abstract class BinaryEncoding
             ReadOnlySpan<byte> data       ,
         out int                readedBytes)
     {
-        int ind = data.LenIndexOf(NullTerminator);
+        int ind = ((ConstPtr<byte>)data).IndexOfRepeat(NullTerminator);
         if (ind >= 0)
             data = data[..ind];
         readedBytes = data.Length + _nullTerminator.Length;

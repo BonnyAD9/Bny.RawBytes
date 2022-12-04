@@ -20,4 +20,8 @@
         </None>
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Bny.General" Version="1.1.0" />
+    </ItemGroup>
+
 </Project>

@@ -1,6 +1,8 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using Bny.General.Memory;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Bny.RawBytes;
@@ -305,7 +307,7 @@ public static class Bytes
         return totalReaded;
     }
 
-    private static int TryReadIBinaryInteger(
+    private static unsafe int TryReadIBinaryInteger(
             ReadOnlySpan<byte> data  ,
         out object?            result,
             BytesParam par           )
@@ -328,25 +330,30 @@ public static class Bytes
             p => p.FullName is not null &&
                  p.FullName.Contains("System.Numerics.ISignedNumber")));
 
-        // use reflection to call wrappers for
-        // IBinaryInteger.TryReadLittleEndian or
-        // IBinaryInteger.TryReadBigEndian with the type parameter
-        var parm = new object[]
+        bool res;
+        object[] parm;
+        fixed (byte* ptr = data) // ensure that the memory is fixed
         {
-            new SizedPointer<byte>(data), isUnsigned, null!
-        };
+            // use reflection to call wrappers for
+            // IBinaryInteger.TryReadLittleEndian or
+            // IBinaryInteger.TryReadBigEndian with the type parameter
+            parm = new object[]
+            {
+                new ReadOnlySpanWrapper<byte>(data), isUnsigned, null!
+            };
 
-        var res = (bool)typeof(Bytes).GetMethod(
-                mname,
-                BindingFlags.NonPublic | BindingFlags.Static)!
-            .MakeGenericMethod(par.Type)!.Invoke(null, parm)!;
+            res = (bool)typeof(Bytes).GetMethod(
+                    mname,
+                    BindingFlags.NonPublic | BindingFlags.Static)!
+                .MakeGenericMethod(par.Type)!.Invoke(null, parm)!;
+        }
 
         result = parm[2];
         res = res && result is not null;
         return res ? data.Length : -1;
     }
 
-    private static int TryReadIBinaryObject(
+    private static unsafe int TryReadIBinaryObject(
             ReadOnlySpan<byte> data  ,
         out object?            result,
             BytesParam         par   )
@@ -359,16 +366,23 @@ public static class Bytes
                  p.FullName.Contains("Bny.RawBytes.IBinaryObject")))
             return -1;
 
-        // use reflection to call the generic wrapper
-        var parm = new object[]
-        {
-            new SizedPointer<byte>(data), null!, par.Endianness
-        };
+        object[] parm;
+        int ret;
 
-        var ret = (int)typeof(Bytes).GetMethod(
-                nameof(TryReadIBinaryObjectWrapper),
-                BindingFlags.NonPublic | BindingFlags.Static)!
-            .MakeGenericMethod(par.Type)!.Invoke(null, parm)!;
+        fixed (byte* ptr = data) // ensure that the memory is fixed
+        {
+            // use reflection to call the generic wrapper
+            parm = new object[]
+            {
+                new ReadOnlySpanWrapper<byte>(data), null!, par.Endianness
+            };
+
+            ret = (int)typeof(Bytes).GetMethod(
+                    nameof(TryReadIBinaryObjectWrapper),
+                    BindingFlags.NonPublic | BindingFlags.Static)!
+                .MakeGenericMethod(par.Type)!.Invoke(null, parm)!;
+        }
+
         result = parm[1];
         ret = result is null && ret >= 0 ? -1 : ret;
         return ret;
@@ -646,22 +660,22 @@ public static class Bytes
     // Wrappers for IBinaryInteger TryRead methods with
     // SizedPointer as parameter instead of Span
     private static bool TryReadIBinaryIntegerLEWrapper<T>(
-            SizedPointer<byte> ptr       ,
-            bool               isUnsigned,
-        out T result                     ) where T : IBinaryInteger<T>
+            ReadOnlySpanWrapper<byte> ptr       ,
+            bool                      isUnsigned,
+        out T                         result    ) where T : IBinaryInteger<T>
         => T.TryReadLittleEndian(ptr, isUnsigned, out result);
 
     private static bool TryReadIBinaryIntegerBEWrapper<T>(
-            SizedPointer<byte> ptr       ,
-            bool               isUnsigned,
-        out T                  result    ) where T : IBinaryInteger<T>
+            ReadOnlySpanWrapper<byte> ptr       ,
+            bool                      isUnsigned,
+        out T                         result    ) where T : IBinaryInteger<T>
         => T.TryReadBigEndian(ptr, isUnsigned, out result);
 
     // Wrappers for IBinaryObject TryRead methods
     private static int TryReadIBinaryObjectWrapper<T>(
-            SizedPointer<byte> ptr       ,
-        out T?                 result    ,
-            Endianness         endianness) where T : IBinaryObject<T>
+            ReadOnlySpanWrapper<byte> ptr       ,
+        out T?                        result    ,
+            Endianness                endianness) where T : IBinaryObject<T>
         => T.TryReadFromBinary(ptr, out result, endianness);
 
     private static bool TryReadIBinaryObjectSWrapper<T>(
@@ -864,7 +878,7 @@ public static class Bytes
         return bow.TryWriteToBinary(result, par.Endianness);
     }
 
-    private static int TryWriteIBinaryInteger(
+    private static unsafe int TryWriteIBinaryInteger(
         object     data  ,
         Span<byte> result,
         BytesParam par   )
@@ -890,15 +904,21 @@ public static class Bytes
             if (result.Length < byteCount)
                 return -1;
 
-            var parm = new object[]
-            {
-                data, new SizedPointer<byte>(result), null!
-            };
+            object[] parm;
+            bool res;
 
-            var res = (bool)typeof(Bytes).GetMethod(
-                    mname                                       ,
-                    BindingFlags.NonPublic | BindingFlags.Static)!
-                .MakeGenericMethod(par.Type)!.Invoke(null, parm)!;
+            fixed (byte* ptr = result) // ensure that the memory is fixed
+            {
+                parm = new object[]
+                {
+                    data, new SpanWrapper<byte>(result), null!
+                };
+
+                res = (bool)typeof(Bytes).GetMethod(
+                        mname,
+                        BindingFlags.NonPublic | BindingFlags.Static)!
+                    .MakeGenericMethod(par.Type)!.Invoke(null, parm)!;
+            }
 
             return res ? (int)parm[2] : -1;
         }
@@ -1078,15 +1098,15 @@ public static class Bytes
     }
 
     private static bool TryWriteIBinaryIntegerLEWrapper<T>(
-            T                  value       ,
-            SizedPointer<byte> ptr         ,
-        out int                bytesWritten) where T : IBinaryInteger<T>
+            T                 value       ,
+            SpanWrapper<byte> ptr         ,
+        out int               bytesWritten) where T : IBinaryInteger<T>
         => value.TryWriteLittleEndian(ptr, out bytesWritten);
 
     private static bool TryWriteIBinaryIntegerBEWrapper<T>(
-            T                  value       , 
-            SizedPointer<byte> ptr         ,
-        out int                bytesWritten) where T : IBinaryInteger<T>
+            T                 value       ,
+            SpanWrapper<byte> ptr         ,
+        out int               bytesWritten) where T : IBinaryInteger<T>
         => value.TryWriteBigEndian(ptr, out bytesWritten);
 
     private static bool TryExtractAttribute(
