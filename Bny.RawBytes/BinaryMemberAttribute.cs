@@ -8,19 +8,13 @@ namespace Bny.RawBytes;
 [AttributeUsage(    AttributeTargets.Field | AttributeTargets.Property,
     AllowMultiple = false                                             ,
     Inherited     = false                                             )]
-public class BinaryMemberAttribute : Attribute
+public class BinaryMemberAttribute : BinaryAttribute
 {
     /// <summary>
     /// Prefered byte order of the conversion
     /// </summary>
     public Endianness Endianness => _endianness;
     private readonly Endianness _endianness;
-
-    /// <summary>
-    /// Order of the attributes
-    /// </summary>
-    public int Order => _order;
-    private readonly int _order;
 
     /// <summary>
     /// Specifies whether when reading the value should be signed,
@@ -74,12 +68,12 @@ public class BinaryMemberAttribute : Attribute
                            string?    encoding       = null              ,
                            bool       nullTerminated = false             ,
         [CallerLineNumber] int        order          = 0                 )
+        : base(order)
     {
         _endianness = endianness;
         _size= size;
         _signed = signed;
         _encoding = encoding;
         _nullTerminated = nullTerminated;
-        _order = order;
     }
 }

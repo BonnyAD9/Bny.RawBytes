@@ -283,23 +283,38 @@ public static class Bytes
 
         foreach (var m in members)
         {
-            var d = data;
-            int sizeLimit = -1;
-            if (m.Attrib.Size >= 0)
+            int rb;
+            switch (m.Attrib)
             {
-                if (m.Attrib.Size > d.Length)
+                case BinaryMemberAttribute bma:
+                {
+                    var d = data;
+                    int sizeLimit = -1;
+                    if (bma.Size >= 0)
+                    {
+                        if (bma.Size > d.Length)
+                            return -1;
+                        d = d[..bma.Size];
+                        sizeLimit = bma.Size;
+                    }
+
+                    rb = TryTo(d, out var res, m.CreatePar(bma, objPar));
+                    if (rb < 0)
+                        return -1;
+
+                    m.SetValue(result, res);
+
+                    rb = Math.Max(rb, sizeLimit);
+                    break;
+                }
+                case BinaryPaddingAttribute bpa:
+                    rb = bpa.Size;
+                    if (rb < 0)
+                        return -1;
+                    break;
+                default:
                     return -1;
-                d = d[..m.Attrib.Size];
-                sizeLimit = m.Attrib.Size;
             }
-
-            int rb = TryTo(d, out var res, m.CreatePar(objPar));
-            if (rb < 0)
-                return -1;
-
-            m.SetValue(result, res);
-
-            rb = Math.Max(rb, sizeLimit);
             data = data[rb..];
             totalReaded += rb;
         }
@@ -598,21 +613,41 @@ public static class Bytes
         foreach (var m in membs)
         {
             object? res;
-            if (m.Attrib.Size >= 0)
+            switch (m.Attrib)
             {
-                Span<byte> buffer = new byte[m.Attrib.Size];
-                if (data.Read(buffer) != buffer.Length)
-                    return false;
-                if (TryTo(buffer, out res, m.CreatePar(objPar)) < 0)
-                    return false;
-            }
-            else
-            {
-                if (!TryTo(data, out res, m.CreatePar(objPar)))
-                    return false;
-            }
+                case BinaryMemberAttribute bma:
+                    if (bma.Size >= 0)
+                    {
+                        Span<byte> buffer = new byte[bma.Size];
+                        if (data.Read(buffer) != buffer.Length)
+                            return false;
+                        if (TryTo(buffer, out res, m.CreatePar(bma, objPar)) < 0)
+                            return false;
+                    }
+                    else
+                    {
+                        if (!TryTo(data, out res, m.CreatePar(bma, objPar)))
+                            return false;
+                    }
 
-            m.SetValue(result, res);
+                    m.SetValue(result, res);
+                    break;
+                case BinaryPaddingAttribute bpa:
+                    if (bpa.Size == 0)
+                        break;
+                    if (bpa.Size < 0)
+                        return false;
+                    if (!data.CanSeek)
+                    {
+                        Span<byte> buffer = new byte[bpa.Size];
+                        data.Read(buffer);
+                        break;
+                    }
+                    data.Seek(bpa.Size, SeekOrigin.Current);
+                    break;
+                default:
+                    return false;
+            }
         }
         return true;
     }
@@ -853,13 +888,27 @@ public static class Bytes
         int bytesWritten = 0;
         foreach (var m in members)
         {
-            var wb = TryFrom_(
-                m.GetValue(value)! ,
-                result             ,
-                m.CreatePar(objPar));
+            int wb; // written bytes in this iteration
+            switch (m.Attrib)
+            {
+                case BinaryMemberAttribute bma:
+                    wb = TryFrom_(
+                        m.GetValue(value)!,
+                        result,
+                        m.CreatePar(bma, objPar));
 
-            if (wb < 0)
-                return -1;
+                    if (wb < 0)
+                        return -1;
+                    break;
+                case BinaryPaddingAttribute bpa:
+                    wb = bpa.Size;
+                    if (result.Length < wb)
+                        return -1;
+                    result[..wb].Fill(0);
+                    break;
+                default:
+                    return -1;
+            }
 
             result = result[wb..];
             bytesWritten += wb;
@@ -1051,8 +1100,20 @@ public static class Bytes
 
         foreach (var m in members)
         {
-            if (!TryFrom_(m.GetValue(value)!, output, m.CreatePar(objPar)))
-                return false;
+            switch (m.Attrib)
+            {
+                case BinaryMemberAttribute bma:
+                    if (!TryFrom_(m.GetValue(value)!, output, m.CreatePar(bma, objPar)))
+                        return false;
+                    break;
+                case BinaryPaddingAttribute bpa:
+                    if (bpa.Size < 0)
+                        return false;
+                    output.Write(new byte[bpa.Size]); // write bpa.Size zeros
+                    break;
+                default:
+                    return false;
+            }
         }
         return true;
     }
@@ -1110,13 +1171,13 @@ public static class Bytes
         => value.TryWriteBigEndian(ptr, out bytesWritten);
 
     private static bool TryExtractAttribute(
-                                BytesParam                      par      ,
-        [NotNullWhen(true)] out BinaryObjectAttribute?          attrib   ,
-                            out Span<BinaryMemberAttributeInfo> members  ,
-        [NotNullWhen(true)] out BytesParam?                     typeParam)
+                                BytesParam                par      ,
+        [NotNullWhen(true)] out BinaryObjectAttribute?    attrib   ,
+                            out Span<BinaryAttributeInfo> members  ,
+        [NotNullWhen(true)] out BytesParam?               typeParam)
     {
         typeParam = null;
-        members = Array.Empty<BinaryMemberAttributeInfo>().AsSpan();
+        members = Array.Empty<BinaryAttributeInfo>().AsSpan();
 
         attrib = par.Type.GetCustomAttribute<BinaryObjectAttribute>();
         if (attrib is null)
@@ -1128,12 +1189,17 @@ public static class Bytes
             BindingFlags.Instance  |
             BindingFlags.Static    ;
 
-        members = par.Type.GetFields(AllBindingFlags)
-            .Select(p => new BinaryMemberAttributeInfo(p))
-            .Concat(par.Type.GetProperties(AllBindingFlags)
-            .Select(p => new BinaryMemberAttributeInfo(p)))
-            .Where(p => p.Attrib is not null).OrderBy(p => p.Attrib.Order)
-            .ToArray().AsSpan();
+        members = (from b in
+                   (from f in par.Type.GetFields(AllBindingFlags)
+                    from a in f.GetCustomAttributes<BinaryAttribute>()
+                    select new BinaryAttributeInfo(f, a))
+                   .Concat(
+                    from p in par.Type.GetProperties(AllBindingFlags)
+                    from a in p.GetCustomAttributes<BinaryAttribute>()
+                    select new BinaryAttributeInfo(p, a))
+                   orderby b.Attrib.Order
+                   select b)
+                  .ToArray();
 
         typeParam = par with
         {

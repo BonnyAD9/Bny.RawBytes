@@ -2,23 +2,23 @@
 
 namespace Bny.RawBytes;
 
-internal class BinaryMemberAttributeInfo
+internal class BinaryAttributeInfo
 {
-    public BinaryMemberAttribute Attrib { get; init; }
+    public BinaryAttribute Attrib { get; init; }
     private readonly Func<object?, object?> _getValue;
     private readonly Action<object?, object?> _setValue;
     public Type MemberType { get; init; }
 
-    public BinaryMemberAttributeInfo(FieldInfo field)
+    public BinaryAttributeInfo(FieldInfo field, BinaryAttribute attribute)
     {
-        Attrib = field.GetCustomAttribute<BinaryMemberAttribute>()!;
+        Attrib = attribute;
         _getValue = field.GetValue;
         _setValue = field.SetValue;
         MemberType = field.FieldType;
     }
-    public BinaryMemberAttributeInfo(PropertyInfo property)
+    public BinaryAttributeInfo(PropertyInfo property, BinaryAttribute attribute)
     {
-        Attrib = property.GetCustomAttribute<BinaryMemberAttribute>()!;
+        Attrib = attribute;
         _getValue = property.GetValue;
         _setValue = property.SetValue;
         MemberType = property.PropertyType;
@@ -28,12 +28,14 @@ internal class BinaryMemberAttributeInfo
     public void SetValue(object? instance, object? value)
         => _setValue(instance, value);
 
-    public BytesParam CreatePar(BytesParam par) => par with
+    public BytesParam CreatePar(
+        BinaryMemberAttribute attribute,
+        BytesParam            par      ) => par with
     {
         Type = MemberType,
-        Endianness = par.GetEndiannessTo(Attrib.Endianness),
-        Sign = Attrib.Signed,
-        Encoding = Attrib.Encoding ?? par.Encoding,
-        NullTerminated = Attrib.NullTerminated,
+        Endianness = par.GetEndiannessTo(attribute.Endianness),
+        Sign = attribute.Signed,
+        Encoding = attribute.Encoding ?? par.Encoding,
+        NullTerminated = attribute.NullTerminated,
     };
 }
