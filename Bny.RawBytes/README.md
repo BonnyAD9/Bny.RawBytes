@@ -13,4 +13,4 @@ This directory contains the library source code.
 - **IBinaryObjectStream.cs:** contains the `IBinaryObjectStream` interface
 - **NetBinaryEncoding.cs:** contains the `NetBinaryEncoding` class
 - **IBinaryObjectWrite.cs:** contains the `IBinaryObjectWrite` interface that should not be implemented by itself
-- **BinaryMemberAttributeInfo.cs:** contains the iternal `BinaryMemberAttributeInfo` class that helps interpreting the `BinaryMemberAttribute`
+- **BinaryAttributeInfo.cs:** contains the iternal `BinaryAttributeInfo` class that helps interpreting the `BinaryAttribute`s
