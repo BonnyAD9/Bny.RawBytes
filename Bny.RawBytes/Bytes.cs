@@ -287,31 +287,50 @@ public static class Bytes
             switch (m.Attrib)
             {
                 case BinaryMemberAttribute bma:
-                {
-                    var d = data;
-                    int sizeLimit = -1;
-                    if (bma.Size >= 0)
                     {
-                        if (bma.Size > d.Length)
+                        var d = data;
+                        int sizeLimit = -1;
+                        if (bma.Size >= 0)
+                        {
+                            if (bma.Size > d.Length)
+                                return -1;
+                            d = d[..bma.Size];
+                            sizeLimit = bma.Size;
+                        }
+
+                        rb = TryTo(d, out var res, m.CreatePar(bma, objPar));
+                        if (rb < 0)
                             return -1;
-                        d = d[..bma.Size];
-                        sizeLimit = bma.Size;
+
+                        m.SetValue(result, res);
+
+                        rb = Math.Max(rb, sizeLimit);
+                        break;
                     }
-
-                    rb = TryTo(d, out var res, m.CreatePar(bma, objPar));
-                    if (rb < 0)
-                        return -1;
-
-                    m.SetValue(result, res);
-
-                    rb = Math.Max(rb, sizeLimit);
-                    break;
-                }
                 case BinaryPaddingAttribute bpa:
                     rb = bpa.Size;
-                    if (rb < 0)
+                    if (rb < 0 || rb > data.Length)
                         return -1;
                     break;
+                case BinaryExactAttribute bea:
+                    {
+                        var encoding =
+                            BinaryEncoding.TryGet(bea.DataEncoding);
+
+                        if (encoding is null)
+                            return -1;
+                        
+                        ReadOnlySpan<byte> match =
+                            encoding.GetBytes(bea.Data);
+
+                        rb = match.Length;
+                        if (rb > data.Length)
+                            return -1;
+
+                        if (!data.StartsWith(match))
+                            return -1;
+                        break;
+                    }
                 default:
                     return -1;
             }
@@ -645,6 +664,25 @@ public static class Bytes
                     }
                     data.Seek(bpa.Size, SeekOrigin.Current);
                     break;
+                case BinaryExactAttribute bea:
+                    {
+                        var encoding =
+                            BinaryEncoding.TryGet(bea.DataEncoding);
+
+                        if (encoding is null)
+                            return false;
+
+                        ReadOnlySpan<byte> match =
+                            encoding.GetBytes(bea.Data);
+
+                        Span<byte> buffer = new byte[match.Length];
+                        if (data.Read(buffer) != match.Length)
+                            return false;
+
+                        if (!buffer.StartsWith(match))
+                            return false;
+                        break;
+                    }
                 default:
                     return false;
             }
@@ -906,6 +944,24 @@ public static class Bytes
                         return -1;
                     result[..wb].Fill(0);
                     break;
+                case BinaryExactAttribute bea:
+                    {
+                        var encoding =
+                            BinaryEncoding.TryGet(bea.DataEncoding);
+
+                        if (encoding is null)
+                            return -1;
+
+                        ReadOnlySpan<byte> match =
+                            encoding.GetBytes(bea.Data);
+                        wb = match.Length;
+
+                        if (result.Length < wb)
+                            return -1;
+
+                        match.CopyTo(result[..wb]);
+                        break;
+                    }
                 default:
                     return -1;
             }
@@ -1111,6 +1167,17 @@ public static class Bytes
                         return false;
                     output.Write(new byte[bpa.Size]); // write bpa.Size zeros
                     break;
+                case BinaryExactAttribute bea:
+                    {
+                        var encoding =
+                            BinaryEncoding.TryGet(bea.DataEncoding);
+
+                        if (encoding is null)
+                            return false;
+
+                        output.Write(encoding.GetBytes(bea.Data));
+                        break;
+                    }
                 default:
                     return false;
             }
