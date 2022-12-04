@@ -20,3 +20,4 @@ This directory contains the library source code.
 - **NetBinaryEncoding.cs:** contains the `NetBinaryEncoding` class
 - **IBinaryObjectWrite.cs:** contains the `IBinaryObjectWrite` interface that should not be implemented by itself
 - **BinaryAttributeInfo.cs:** contains the iternal `BinaryAttributeInfo` class that helps interpreting the `BinaryAttribute`s
+- **MaxLengthStream.cs:** contains stream that limits the underlaing stream size
