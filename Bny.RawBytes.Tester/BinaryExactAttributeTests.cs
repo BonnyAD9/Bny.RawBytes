@@ -1,7 +1,7 @@
 ﻿namespace Bny.RawBytes.Tests;
 
 [UnitTest]
-internal class BinaryExactAttributeTest
+internal class BinaryExactAttributeTests
 {
     [BinaryObject]
     class TestClass

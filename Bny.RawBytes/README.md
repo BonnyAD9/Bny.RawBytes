@@ -5,6 +5,8 @@ This directory contains the library source code.
 - **Bytes.cs:** contains the Bytes` static class (contains for example the `Bytes.To` and `Bytes.From` methods)
 - **BinaryObjectAttribute.cs:** contains the `BinaryObjectAttribute` for marking types that can be converted to binary
 - **BinaryMemberAttribute.cs:** contains the `BinaryMemberAttribute` for marking properties and fields that specify the conversion to binary
+- **BinaryPaddingAttribute.cs:** contains the `BinaryPaddingAttribute` for specifying padding
+- **BinaryExactAttribute.cs:** contains the `BinaryExactAttribute` for specifying exact binary data
 - **BytesParam.cs:** contains the `BytesParam` record for passing info to the `Bytes.From` and `Bytes.To` methods about the conversion
 - **Endianness.cs:** contains the `Endianness` enum that represents the endianness of a conversion
 - **Sign.cs:** contains the `Sign` enum that specifies whether number should be signed or not

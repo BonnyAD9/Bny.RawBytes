@@ -5,3 +5,5 @@ This directory contains unit tests for the library.
 - **Program.cs:** invocation of the tests (main)
 - **BytesTests.cs:** tests for members of the `Bytes` static class
 - **BinaryEncodingTests.cs:** tests for the `BinaryEncoding` abstract class and `NetBinaryEncoding` class
+- **BinaryPaddingAttributeTests.cs:** tests for the `BinaryPaddingAttribute`
+- **BinaryExactAttributeTests.cs:** tests for the `BinaryExactAttribute`
