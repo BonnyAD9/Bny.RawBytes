@@ -131,6 +131,20 @@ public static partial class Bytes
             switch (m.Attrib)
             {
                 case BinaryMemberAttribute bma:
+                    if (bma.Size != -1)
+                    {
+                        if (bma.Size < 0)
+                            return false;
+
+                        MaxLengthStream mls = new(output, bma.Size);
+                        if (!TryFrom_(m.GetValue(value)!, mls, m.CreatePar(bma, objPar)))
+                            return false;
+
+                        if (mls.CurPos != bma.Size)
+                            output.Write(new byte[bma.Size - mls.CurPos]);
+                        break;
+                    }
+
                     if (!TryFrom_(m.GetValue(value)!, output, m.CreatePar(bma, objPar)))
                         return false;
                     break;

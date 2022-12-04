@@ -61,7 +61,7 @@ internal class BytesTests
         [BinaryMember]
         public SimpleIBOClass? SimpleIBO { get; set; }
 
-        [BinaryMember(size: 5)]
+        [BinaryMember(size: 4)]
         public BigInteger BInteger24 { get; set; }
     }
 
@@ -217,7 +217,7 @@ internal class BytesTests
             0x00, 0x57, 0x00, 0x6f, 0x00, 0x72, 0x00, 0x6c, 0x00, 0x64, 0, 0,
             255, 255, 255, 255, // SimpleBoa.Value: -1
             123, 0, 0, 0, // SimpleIBO.Value: 123
-            0, 0, 1, 0, 0, // BInteger24: 0x10000
+            0, 0, 1, 0, // BInteger24: 0x10000
             255, 255, 255, 255, 255, // Some additional data
         };
 

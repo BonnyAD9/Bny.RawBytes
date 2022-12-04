@@ -144,6 +144,31 @@ public static partial class Bytes
             switch (m.Attrib)
             {
                 case BinaryMemberAttribute bma:
+                    if (bma.Size != -1)
+                    {
+                        if (bma.Size > result.Length)
+                            return -1;
+
+                        var resultRange = result;
+                        if (bma.Size < result.Length)
+                            resultRange = result[..bma.Size];
+
+                        wb = TryFrom_(
+                            m.GetValue(value)!      ,
+                            resultRange             ,
+                            m.CreatePar(bma, objPar));
+
+                        if (wb < 0)
+                            return -1;
+
+                        if (wb < bma.Size)
+                        {
+                            resultRange[wb..].Clear();
+                            wb = bma.Size;
+                        }
+                        break;
+                    }
+
                     wb = TryFrom_(
                         m.GetValue(value)!,
                         result,
@@ -156,7 +181,7 @@ public static partial class Bytes
                     wb = bpa.Size;
                     if (result.Length < wb)
                         return -1;
-                    result[..wb].Fill(0);
+                    result[..wb].Clear();
                     break;
                 case BinaryExactAttribute bea:
                     {
