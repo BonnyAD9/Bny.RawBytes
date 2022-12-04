@@ -1,7 +1,10 @@
 var hierarchy =
 [
     [ "Attribute", null, [
-      [ "BinaryMemberAttribute", "class_binary_member_attribute.html", null ],
+      [ "BinaryAttribute", "class_binary_attribute.html", [
+        [ "BinaryMemberAttribute", "class_binary_member_attribute.html", null ],
+        [ "BinaryPaddingAttribute", "class_binary_padding_attribute.html", null ]
+      ] ],
       [ "BinaryObjectAttribute", "class_binary_object_attribute.html", null ]
     ] ],
     [ "BinaryEncoding", "class_binary_encoding.html", [
