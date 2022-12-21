@@ -4,14 +4,16 @@ namespace Bny.RawBytes;
 
 internal class MaxLengthStream : Stream
 {
-    Stream _stream;
+    readonly Stream _stream;
     public long MaxLength { get; init; }
     public long CurPos { get; private set; }
+    public bool FakeLengths { get; init; }
 
-    public MaxLengthStream(Stream stream, int maxLength)
+    public MaxLengthStream(Stream stream, int maxLength, bool fakeLengths = false)
     {
         _stream = stream;
         MaxLength = maxLength;
+        FakeLengths = fakeLengths;
     }
 
     public override bool CanRead => _stream.CanRead;
@@ -41,12 +43,13 @@ internal class MaxLengthStream : Stream
 
     public override int Read(byte[] buffer, int offset, int count)
     {
+        var toRead = (int)Math.Min(count, MaxLength - CurPos);
         int res = _stream.Read(
             buffer                                  ,
             offset                                  ,
             (int)Math.Min(count, MaxLength - CurPos));
         CurPos += res;
-        return res;
+        return FakeLengths && toRead == res ? count : res;
     }
 
     public override long Seek(long offset, SeekOrigin origin)

@@ -136,7 +136,7 @@ public static partial class Bytes
                         if (bma.Size < 0)
                             return false;
 
-                        MaxLengthStream mls = new(output, bma.Size);
+                        MaxLengthStream mls = new(output, bma.Size, fakeLengths: bma.TrimLargeData);
                         if (!TryFrom_(m.GetValue(value)!, mls, m.CreatePar(bma, objPar)))
                             return false;
 

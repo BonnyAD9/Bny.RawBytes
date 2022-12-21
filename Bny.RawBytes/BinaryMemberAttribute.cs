@@ -42,6 +42,13 @@ public class BinaryMemberAttribute : BinaryAttribute
     private readonly bool _nullTerminated;
 
     /// <summary>
+    /// Determines whether data that is too large to fit will be trimmed
+    /// or wil rise an error
+    /// </summary>
+    public bool TrimLargeData => _trimLargeData;
+    private readonly bool _trimLargeData;
+
+    /// <summary>
     /// Creates new BinaryFieldAttribute
     /// </summary>
     /// <param name="endianness">prefered byte order of the conversion</param>
@@ -58,6 +65,10 @@ public class BinaryMemberAttribute : BinaryAttribute
     /// <param name="nullTerminated">
     /// Determines whether the string is null terminated
     /// </param>
+    /// <param name="trimLargeData">
+    /// Determines whether data that is too large to fit will be trimmed
+    /// or wil rise an error
+    /// </param>
     /// <param name="order">
     /// order of the fields, this is by default the line number
     /// </param>
@@ -67,6 +78,7 @@ public class BinaryMemberAttribute : BinaryAttribute
                            Sign       signed         = Sign.Default      ,
                            string?    encoding       = null              ,
                            bool       nullTerminated = false             ,
+                           bool       trimLargeData  = false             ,
         [CallerLineNumber] int        order          = 0                 )
         : base(order)
     {
@@ -75,5 +87,6 @@ public class BinaryMemberAttribute : BinaryAttribute
         _signed = signed;
         _encoding = encoding;
         _nullTerminated = nullTerminated;
+        _trimLargeData = trimLargeData;
     }
 }

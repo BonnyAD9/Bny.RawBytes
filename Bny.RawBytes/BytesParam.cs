@@ -9,11 +9,16 @@
 /// <param name="NullTerminated">
 /// Determines whether the strings are null terminated
 /// </param>
+/// <param name="TrimLargeData">
+/// Determines whether data that is too large will be trimmed,
+/// or will rase an error
+/// </param>
 public record BytesParam(
     Endianness Endianness     = Endianness.Default,
     Sign       Sign           = Sign.Default      ,
     string     Encoding       = "utf-8"           ,
-    bool       NullTerminated = false             )
+    bool       NullTerminated = false             ,
+    bool       TrimLargeData  = false             )
 {
     // to silence the warning
     private Type? _type;
@@ -62,7 +67,11 @@ public record BytesParam(
 
         ReadOnlySpan<byte> strb = enc.GetBytes(str);
         if (strb.Length > result.Length)
-            return -1;
+        {
+            if (!TrimLargeData)
+                return -1;
+            strb = strb[..result.Length];
+        }
 
         strb.CopyTo(result);
         return strb.Length;

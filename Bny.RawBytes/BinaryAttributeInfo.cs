@@ -37,5 +37,6 @@ internal class BinaryAttributeInfo
         Sign = attribute.Signed,
         Encoding = attribute.Encoding ?? par.Encoding,
         NullTerminated = attribute.NullTerminated,
+        TrimLargeData = attribute.TrimLargeData,
     };
 }
