@@ -150,6 +150,21 @@ public static partial class Bytes
             return result is null ? -1 : br;
         }
 
+        if (par.Type.IsEnum)
+        {
+            var newPar = par with { Type = par.Type.GetEnumUnderlyingType() };
+            var res = TryTo(data, out var obj, newPar);
+            
+            if (res < 0)
+            {
+                result = null;
+                return res;
+            }
+
+            result = Enum.ToObject(par.Type, obj!);
+            return res;
+        }
+
         result = par.CreateInstance();
         if (result is null)
             return -1;

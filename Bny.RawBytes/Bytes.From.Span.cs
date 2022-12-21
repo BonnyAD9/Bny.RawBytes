@@ -123,10 +123,16 @@ public static partial class Bytes
         Span<byte> result,
         BytesParam par)
     {
-        if (value is not string str)
+        if (value is string str)
+            return par.GetBytes(str, result);
+
+        if (!par.Type.IsEnum)
             return -1;
 
-        return par.GetBytes(str, result);
+        var newPar = par with { Type = par.Type.GetEnumUnderlyingType() };
+
+        return
+            TryFrom_(Convert.ChangeType(value, newPar.Type), result, newPar);
     }
 
     private static int TryWriteBinaryAttribute(

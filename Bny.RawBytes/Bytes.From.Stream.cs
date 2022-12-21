@@ -112,10 +112,16 @@ public static partial class Bytes
         Stream output,
         BytesParam par)
     {
-        if (value is not string str)
+        if (value is string str)
+            return par.GetBytes(str, output);
+
+        if (!par.Type.IsEnum)
             return false;
 
-        return par.GetBytes(str, output);
+        var newPar = par with { Type = par.Type.GetEnumUnderlyingType() };
+
+        return
+            TryFrom_(Convert.ChangeType(value, newPar.Type), output, newPar);
     }
 
     private static bool TryWriteBinaryObjectAttribute(
