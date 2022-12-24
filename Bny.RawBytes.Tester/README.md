@@ -10,4 +10,5 @@ This directory contains unit tests for the library.
 - **BinaryAttributeSizeFromTests.cs:** tests the `size` conversion parameter when writing strings
 - **CustomBinaryAttributeTests.cs:** tests for the `CustomBinaryAttribute`
 - **ExtensionBinaryAttributeTests.cs:** tests for the `ExtensionBinaryAttribtue`
-- **TrimLargeDataTests.cs:** tests fot the `TrimLargeData` conversion parameter
+- **TrimLargeDataTests.cs:** tests for the `TrimLargeData` conversion parameter
+- **TrimCharsTests.cs:** tests for the `TrimChars` conversino parameter
