@@ -2,6 +2,8 @@
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Runtime.Intrinsics.X86;
 
 namespace Bny.RawBytes;
 
@@ -231,74 +233,116 @@ public static partial class Bytes
 
         foreach (var m in membs)
         {
-            object? res;
-            switch (m.Attrib)
+            var success = m.Attrib switch
             {
-                case BinaryMemberAttribute bma:
-                    if (bma.Size >= 0)
-                    {
-                        Span<byte> buffer = new byte[bma.Size];
-                        if (data.Read(buffer) != buffer.Length)
-                            return false;
-                        if (TryTo(buffer, out res, m.CreatePar(bma, objPar)) < 0)
-                            return false;
-                    }
-                    else
-                    {
-                        if (!TryTo(data, out res, m.CreatePar(bma, objPar)))
-                            return false;
-                    }
+                BinaryMemberAttribute bma => TryReadBinaryMemberAttribute(
+                    result, 
+                    data  ,
+                    bma   ,
+                    m     ,
+                    objPar),
+                BinaryPaddingAttribute bpa
+                    => TryReadBinaryPaddingAttribute(data, bpa),
+                BinaryExactAttribute bea
+                    => TryReadBinaryExactAttribute(data, bea),
+                CustomBinaryAttribute cba => TryReadCustomBinaryAttribute(
+                    data  ,
+                    result,
+                    cba   ,
+                    m     ,
+                    objPar),
+                _ => false,
+            };
 
-                    m.SetValue(result, res);
-                    break;
-                case BinaryPaddingAttribute bpa:
-                    if (bpa.Size == 0)
-                        break;
-                    if (bpa.Size < 0)
-                        return false;
-                    if (!data.CanSeek)
-                    {
-                        Span<byte> buffer = new byte[bpa.Size];
-                        data.Read(buffer);
-                        break;
-                    }
-                    data.Seek(bpa.Size, SeekOrigin.Current);
-                    break;
-                case BinaryExactAttribute bea:
-                    {
-                        var encoding =
-                            BinaryEncoding.TryGet(bea.DataEncoding);
-
-                        if (encoding is null)
-                            return false;
-
-                        ReadOnlySpan<byte> match =
-                            encoding.GetBytes(bea.Data);
-
-                        Span<byte> buffer = new byte[match.Length];
-                        if (data.Read(buffer) != match.Length)
-                            return false;
-
-                        if (!buffer.StartsWith(match))
-                            return false;
-                        break;
-                    }
-                case CustomBinaryAttribute cba:
-                    {
-                        if (!cba.ReadFromStream(
-                            data,
-                            out var obj,
-                            objPar with { Type = m.MemberType }
-                        ))
-                            return false;
-
-                        m.SetValue(result, obj);
-                        break;
-                    }
-                default:
-                    return false;
-            }
+            if (!success)
+                return false;
         }
+        return true;
+    }
+
+    private static bool TryReadBinaryMemberAttribute(
+        object                result,
+        Stream                data  ,
+        BinaryMemberAttribute bma   ,
+        BinaryAttributeInfo   m     ,
+        BytesParam            objPar)
+    {
+        object? res;
+
+        if (bma.Size >= 0)
+        {
+            Span<byte> buffer = new byte[bma.Size];
+            if (data.Read(buffer) != buffer.Length)
+                return false;
+            if (TryTo(buffer, out res, m.CreatePar(bma, objPar)) < 0)
+                return false;
+        }
+        else
+        {
+            if (!TryTo(data, out res, m.CreatePar(bma, objPar)))
+                return false;
+        }
+
+        m.SetValue(result, res);
+        return true;
+    }
+
+    private static bool TryReadBinaryPaddingAttribute(
+        Stream                 data,
+        BinaryPaddingAttribute bpa )
+    {
+        if (bpa.Size == 0)
+            return true;
+
+        if (bpa.Size < 0)
+            return false;
+
+        if (!data.CanSeek)
+        {
+            Span<byte> buffer = new byte[bpa.Size];
+            data.Read(buffer);
+            return true;
+        }
+
+        data.Seek(bpa.Size, SeekOrigin.Current);
+        return true;
+    }
+
+    private static bool TryReadBinaryExactAttribute(
+        Stream               data,
+        BinaryExactAttribute bea )
+    {
+        var encoding =
+            BinaryEncoding.TryGet(bea.DataEncoding);
+
+        if (encoding is null)
+            return false;
+
+        ReadOnlySpan<byte> match =
+            encoding.GetBytes(bea.Data);
+
+        Span<byte> buffer = new byte[match.Length];
+        if (data.Read(buffer) != match.Length)
+            return false;
+
+        return buffer.StartsWith(match);
+    }
+
+    private static bool TryReadCustomBinaryAttribute(
+        Stream                data  ,
+        object                result,
+        CustomBinaryAttribute cba   ,
+        BinaryAttributeInfo   m     ,
+        BytesParam            objPar)
+    {
+        if (!cba.ReadFromStream(
+            data,
+            out var obj,
+            objPar with { Type = m.MemberType }
+        ))
+            return false;
+
+        m.SetValue(result, obj);
         return true;
     }
 

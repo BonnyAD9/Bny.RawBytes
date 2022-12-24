@@ -3,6 +3,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Runtime.Intrinsics.X86;
 
 namespace Bny.RawBytes;
 
@@ -274,76 +276,103 @@ public static partial class Bytes
 
         foreach (var m in members)
         {
-            int rb;
-            switch (m.Attrib)
+            var rb = m.Attrib switch
             {
-                case BinaryMemberAttribute bma:
-                    {
-                        var d = data;
-                        int sizeLimit = -1;
-                        if (bma.Size >= 0)
-                        {
-                            if (bma.Size > d.Length)
-                                return -1;
-                            d = d[..bma.Size];
-                            sizeLimit = bma.Size;
-                        }
+                BinaryMemberAttribute bma => TryReadBinaryMemberAttribute(
+                    data  ,
+                    result,
+                    bma   ,
+                    m     ,
+                    objPar),
+                BinaryPaddingAttribute bpa
+                    => bpa.Size < 0 || bpa.Size > data.Length ? -1 : bpa.Size,
+                BinaryExactAttribute bea
+                    => TryReadBinaryExactAttribute(data, bea),
+                CustomBinaryAttribute cba => TryReadCustomBinaryAttribute(
+                    data  ,
+                    result,
+                    cba   ,
+                    m     ,
+                    objPar),
+                _ => -1,
+            };
+            if (rb < 0)
+                return rb;
 
-                        rb = TryTo(d, out var res, m.CreatePar(bma, objPar));
-                        if (rb < 0)
-                            return -1;
-
-                        m.SetValue(result, res);
-
-                        rb = Math.Max(rb, sizeLimit);
-                        break;
-                    }
-                case BinaryPaddingAttribute bpa:
-                    rb = bpa.Size;
-                    if (rb < 0 || rb > data.Length)
-                        return -1;
-                    break;
-                case BinaryExactAttribute bea:
-                    {
-                        var encoding =
-                            BinaryEncoding.TryGet(bea.DataEncoding);
-
-                        if (encoding is null)
-                            return -1;
-
-                        ReadOnlySpan<byte> match =
-                            encoding.GetBytes(bea.Data);
-
-                        rb = match.Length;
-                        if (rb > data.Length)
-                            return -1;
-
-                        if (!data.StartsWith(match))
-                            return -1;
-                        break;
-                    }
-                case CustomBinaryAttribute cba:
-                    {
-                        rb = cba.ReadFromSpan(
-                            data,
-                            out var obj,
-                            objPar with { Type = m.MemberType }
-                        );
-
-                        if (rb < 0)
-                            return rb;
-
-                        m.SetValue(result, obj);
-                        break;
-                    }
-                default:
-                    return -1;
-            }
             data = data[rb..];
             totalReaded += rb;
         }
 
         return totalReaded;
+    }
+
+    private static int TryReadBinaryMemberAttribute(
+        ReadOnlySpan<byte>    d     ,
+        object?               result,
+        BinaryMemberAttribute bma   ,
+        BinaryAttributeInfo   m     ,
+        BytesParam            objPar)
+    {
+        int sizeLimit = -1;
+
+        if (bma.Size >= 0)
+        {
+            if (bma.Size > d.Length)
+                return -1;
+            d = d[..bma.Size];
+            sizeLimit = bma.Size;
+        }
+
+        int rb = TryTo(d, out var res, m.CreatePar(bma, objPar));
+        if (rb < 0)
+            return -1;
+
+        m.SetValue(result, res);
+
+        rb = Math.Max(rb, sizeLimit);
+        return rb;
+    }
+
+    private static int TryReadBinaryExactAttribute(
+        ReadOnlySpan<byte>   data,
+        BinaryExactAttribute bea )
+    {
+        var encoding =
+            BinaryEncoding.TryGet(bea.DataEncoding);
+
+        if (encoding is null)
+            return -1;
+
+        ReadOnlySpan<byte> match =
+            encoding.GetBytes(bea.Data);
+
+        int rb = match.Length;
+        if (rb > data.Length)
+            return -1;
+
+        if (!data.StartsWith(match))
+            return -1;
+        return rb;
+    }
+
+    private static int TryReadCustomBinaryAttribute(
+        ReadOnlySpan<byte>    data  ,
+        object                result,
+        CustomBinaryAttribute cba   ,
+        BinaryAttributeInfo   m     ,
+        BytesParam            objPar)
+    {
+        int rb = cba.ReadFromSpan(
+            data,
+            out var obj,
+            objPar with { Type = m.MemberType }
+        );
+
+        if (rb < 0)
+            return rb;
+
+        m.SetValue(result, obj);
+        return rb;
     }
 
     private static unsafe int TryReadIBinaryInteger(

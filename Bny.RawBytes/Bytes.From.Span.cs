@@ -1,6 +1,8 @@
 ﻿using Bny.General.Memory;
+using System.Net.Http.Headers;
 using System.Numerics;
 using System.Reflection;
+using System.Runtime.Intrinsics.X86;
 
 namespace Bny.RawBytes;
 
@@ -146,80 +148,27 @@ public static partial class Bytes
         int bytesWritten = 0;
         foreach (var m in members)
         {
-            int wb; // written bytes in this iteration
-            switch (m.Attrib)
+            var wb = m.Attrib switch
             {
-                case BinaryMemberAttribute bma:
-                    if (bma.Size != -1)
-                    {
-                        if (bma.Size > result.Length)
-                            return -1;
+                BinaryMemberAttribute bma => TryWriteBinaryMemberAttribute(
+                    value ,
+                    result,
+                    bma   ,
+                    m     ,
+                    objPar),
+                BinaryPaddingAttribute bpa
+                    => TryWriteBinaryPaddingAttribute(result, bpa),
+                BinaryExactAttribute bea
+                    => TryWriteBinaryExactAttribute(result, bea),
+                CustomBinaryAttribute cba => cba.WriteToSpan(
+                    m.GetValue(value)                  ,
+                    result                             ,
+                    objPar with { Type = m.MemberType }),
+                _ => -1,
+            };
 
-                        var resultRange = result;
-                        if (bma.Size < result.Length)
-                            resultRange = result[..bma.Size];
-
-                        wb = TryFrom_(
-                            m.GetValue(value)!      ,
-                            resultRange             ,
-                            m.CreatePar(bma, objPar));
-
-                        if (wb < 0)
-                            return -1;
-
-                        if (wb < bma.Size)
-                        {
-                            resultRange[wb..].Clear();
-                            wb = bma.Size;
-                        }
-                        break;
-                    }
-
-                    wb = TryFrom_(
-                        m.GetValue(value)!,
-                        result,
-                        m.CreatePar(bma, objPar));
-
-                    if (wb < 0)
-                        return -1;
-                    break;
-                case BinaryPaddingAttribute bpa:
-                    wb = bpa.Size;
-                    if (result.Length < wb)
-                        return -1;
-                    result[..wb].Clear();
-                    break;
-                case BinaryExactAttribute bea:
-                    {
-                        var encoding =
-                            BinaryEncoding.TryGet(bea.DataEncoding);
-
-                        if (encoding is null)
-                            return -1;
-
-                        ReadOnlySpan<byte> match =
-                            encoding.GetBytes(bea.Data);
-                        wb = match.Length;
-
-                        if (result.Length < wb)
-                            return -1;
-
-                        match.CopyTo(result[..wb]);
-                        break;
-                    }
-                case CustomBinaryAttribute cba:
-                    wb = cba.WriteToSpan(
-                        m.GetValue(value),
-                        result,
-                        objPar with { Type = m.MemberType }
-                    );
-
-                    if (wb < 0)
-                        return wb;
-                    break;
-                default:
-                    return -1;
-            }
+            if (wb < 0)
+                return wb;
 
             result = result[wb..];
             bytesWritten += wb;
@@ -228,10 +177,83 @@ public static partial class Bytes
         return bytesWritten;
     }
 
+    private static int TryWriteBinaryMemberAttribute(
+        object                value ,
+        Span<byte>            result,
+        BinaryMemberAttribute bma   ,
+        BinaryAttributeInfo   m     ,
+        BytesParam            objPar)
+    {
+        int wb;
+        if (bma.Size != -1)
+        {
+            if (bma.Size > result.Length)
+                return -1;
+
+            var resultRange = result;
+            if (bma.Size < result.Length)
+                resultRange = result[..bma.Size];
+
+            wb = TryFrom_(
+                m.GetValue(value)!,
+            resultRange,
+                m.CreatePar(bma, objPar));
+
+            if (wb < 0)
+                return wb;
+
+            if (wb < bma.Size)
+            {
+                resultRange[wb..].Clear();
+                wb = bma.Size;
+            }
+            return wb;
+        }
+
+        wb = TryFrom_(
+            m.GetValue(value)!,
+        result,
+            m.CreatePar(bma, objPar));
+
+        return wb;
+    }
+
+    private static int TryWriteBinaryPaddingAttribute(
+        Span<byte>             result,
+        BinaryPaddingAttribute bpa   )
+    {
+        int wb = bpa.Size;
+        if (result.Length < wb)
+            return -1;
+        result[..wb].Clear();
+        return wb;
+    }
+
+    private static int TryWriteBinaryExactAttribute(
+        Span<byte>           result,
+        BinaryExactAttribute bea   )
+    {
+        var encoding =
+            BinaryEncoding.TryGet(bea.DataEncoding);
+
+        if (encoding is null)
+            return -1;
+
+        ReadOnlySpan<byte> match =
+            encoding.GetBytes(bea.Data);
+        int wb = match.Length;
+
+        if (result.Length < wb)
+            return -1;
+
+        match.CopyTo(result[..wb]);
+        return wb;
+    }
+
     private static int TryWriteIBinaryObjectWrite(
-        object value,
+        object value     ,
         Span<byte> result,
-        BytesParam par)
+        BytesParam par   )
     {
         if (value is not IBinaryObjectWrite bow)
             return -1;
@@ -239,9 +261,9 @@ public static partial class Bytes
     }
 
     private static unsafe int TryWriteIBinaryInteger(
-        object data,
+        object     data  ,
         Span<byte> result,
-        BytesParam par)
+        BytesParam par   )
     {
         string mname = par.GetEndianness() == Endianness.Little
             ? nameof(TryWriteIBinaryIntegerLEWrapper)
@@ -289,14 +311,14 @@ public static partial class Bytes
     }
 
     private static bool TryWriteIBinaryIntegerLEWrapper<T>(
-            T value,
-            SpanWrapper<byte> ptr,
-        out int bytesWritten) where T : IBinaryInteger<T>
+            T                 value       ,
+            SpanWrapper<byte> ptr         ,
+        out int               bytesWritten) where T : IBinaryInteger<T>
         => value.TryWriteLittleEndian(ptr, out bytesWritten);
 
     private static bool TryWriteIBinaryIntegerBEWrapper<T>(
-            T value,
-            SpanWrapper<byte> ptr,
-        out int bytesWritten) where T : IBinaryInteger<T>
+            T                 value       ,
+            SpanWrapper<byte> ptr         ,
+        out int               bytesWritten) where T : IBinaryInteger<T>
         => value.TryWriteBigEndian(ptr, out bytesWritten);
 }

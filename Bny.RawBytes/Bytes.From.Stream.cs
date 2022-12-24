@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Runtime.Intrinsics.X86;
 
 namespace Bny.RawBytes;
 
@@ -134,54 +135,77 @@ public static partial class Bytes
 
         foreach (var m in members)
         {
-            switch (m.Attrib)
+            var success = m.Attrib switch
             {
-                case BinaryMemberAttribute bma:
-                    if (bma.Size != -1)
-                    {
-                        if (bma.Size < 0)
-                            return false;
+                BinaryMemberAttribute bma => TryWriteBinaryMemberAttribute(
+                    value ,
+                    output,
+                    bma   ,
+                    m     ,
+                    objPar),
+                BinaryPaddingAttribute bpa
+                    => TryWriteBinaryPaddingAttribute(output, bpa),
+                BinaryExactAttribute bea
+                    => TryWriteBinaryExactAttribute(output, bea),
+                CustomBinaryAttribute cba => cba.WriteToStream(
+                    m.GetValue(value)                  ,
+                    output                             ,
+                    objPar with { Type = m.MemberType }),
+                _ => false,
+            };
 
-                        MaxLengthStream mls = new(output, bma.Size, fakeLengths: bma.TrimLargeData);
-                        if (!TryFrom_(m.GetValue(value)!, mls, m.CreatePar(bma, objPar)))
-                            return false;
-
-                        if (mls.CurPos != bma.Size)
-                            output.Write(new byte[bma.Size - mls.CurPos]);
-                        break;
-                    }
-
-                    if (!TryFrom_(m.GetValue(value)!, output, m.CreatePar(bma, objPar)))
-                        return false;
-                    break;
-                case BinaryPaddingAttribute bpa:
-                    if (bpa.Size < 0)
-                        return false;
-                    output.Write(new byte[bpa.Size]); // write bpa.Size zeros
-                    break;
-                case BinaryExactAttribute bea:
-                    {
-                        var encoding =
-                            BinaryEncoding.TryGet(bea.DataEncoding);
-
-                        if (encoding is null)
-                            return false;
-
-                        output.Write(encoding.GetBytes(bea.Data));
-                        break;
-                    }
-                case CustomBinaryAttribute cba:
-                    if (!cba.WriteToStream(
-                        m.GetValue(value),
-                        output,
-                        objPar with { Type = m.MemberType }
-                    ))
-                        return false;
-                    break;
-                default:
-                    return false;
-            }
+            if (!success)
+                return false;
         }
+        return true;
+    }
+
+    private static bool TryWriteBinaryMemberAttribute(
+        object                value ,
+        Stream                output,
+        BinaryMemberAttribute bma   ,
+        BinaryAttributeInfo   m     ,
+        BytesParam            objPar)
+    {
+        if (bma.Size != -1)
+        {
+            if (bma.Size < 0)
+                return false;
+
+            MaxLengthStream mls = new(output, bma.Size, fakeLengths: bma.TrimLargeData);
+            if (!TryFrom_(m.GetValue(value)!, mls, m.CreatePar(bma, objPar)))
+                return false;
+
+            if (mls.CurPos != bma.Size)
+                output.Write(new byte[bma.Size - mls.CurPos]);
+
+            return true;
+        }
+
+        return TryFrom_(m.GetValue(value)!, output, m.CreatePar(bma, objPar));
+    }
+
+    private static bool TryWriteBinaryPaddingAttribute(
+        Stream output,
+        BinaryPaddingAttribute bpa)
+    {
+        if (bpa.Size < 0)
+            return false;
+        output.Write(new byte[bpa.Size]); // write bpa.Size zeros
+        return true;
+    }
+
+    private static bool TryWriteBinaryExactAttribute(
+        Stream output,
+        BinaryExactAttribute bea)
+    {
+        var encoding =
+            BinaryEncoding.TryGet(bea.DataEncoding);
+
+        if (encoding is null)
+            return false;
+
+        output.Write(encoding.GetBytes(bea.Data));
         return true;
     }
 
