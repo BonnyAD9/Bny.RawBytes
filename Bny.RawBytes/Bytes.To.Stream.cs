@@ -245,11 +245,16 @@ public static partial class Bytes
                     => TryReadBinaryPaddingAttribute(data, bpa),
                 BinaryExactAttribute bea
                     => TryReadBinaryExactAttribute(data, bea),
-                CustomBinaryAttribute cba => TryReadCustomBinaryAttribute(
+                ExtensionBinaryAttribute cba => TryReadExtensionBinaryAttribute(
                     data  ,
                     result,
                     cba   ,
                     m     ,
+                    objPar),
+                CustomBinaryAttribute cba => TryReadCustomBinaryAttribute(
+                    result,
+                    data  ,
+                    cba   ,
                     objPar),
                 _ => false,
             };
@@ -328,10 +333,10 @@ public static partial class Bytes
         return buffer.StartsWith(match);
     }
 
-    private static bool TryReadCustomBinaryAttribute(
+    private static bool TryReadExtensionBinaryAttribute(
         Stream                data  ,
         object                result,
-        CustomBinaryAttribute cba   ,
+        ExtensionBinaryAttribute cba   ,
         BinaryAttributeInfo   m     ,
         BytesParam            objPar)
     {
@@ -344,6 +349,20 @@ public static partial class Bytes
 
         m.SetValue(result, obj);
         return true;
+    }
+
+    private static bool TryReadCustomBinaryAttribute(
+        object                obj  ,
+        Stream                data ,
+        CustomBinaryAttribute cba  ,
+        BytesParam            param)
+    {
+        Span<byte> buffer = new byte[cba.Size];
+        if (data.Read(buffer) != cba.Size)
+            return false;
+
+        return
+            TryReadCustomBinaryAttributeWrapper(obj, buffer, cba.ID, param);
     }
 
     private static bool TryReadIBinaryObject(

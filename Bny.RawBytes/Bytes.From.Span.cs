@@ -151,19 +151,24 @@ public static partial class Bytes
             var wb = m.Attrib switch
             {
                 BinaryMemberAttribute bma => TryWriteBinaryMemberAttribute(
-                    value ,
+                    value,
                     result,
-                    bma   ,
-                    m     ,
+                    bma,
+                    m,
                     objPar),
                 BinaryPaddingAttribute bpa
                     => TryWriteBinaryPaddingAttribute(result, bpa),
                 BinaryExactAttribute bea
                     => TryWriteBinaryExactAttribute(result, bea),
-                CustomBinaryAttribute cba => cba.WriteToSpan(
+                ExtensionBinaryAttribute cba => cba.WriteToSpan(
                     m.GetValue(value)                  ,
                     result                             ,
                     objPar with { Type = m.MemberType }),
+                CustomBinaryAttribute cba => TryWriteCustomBinaryAttribute(
+                    value ,
+                    result,
+                    cba   ,
+                    objPar),
                 _ => -1,
             };
 
@@ -250,6 +255,22 @@ public static partial class Bytes
         return wb;
     }
 
+    private static int TryWriteCustomBinaryAttribute(
+        object                obj   ,
+        Span<byte>            output,
+        CustomBinaryAttribute cba   ,
+        BytesParam            param )
+    {
+        if (output.Length < cba.Size)
+            return -1;
+
+        output = output[..cba.Size];
+        return
+            TryWriteCustomBinaryAttributeWrapper(obj, output, cba.ID, param)
+                ? cba.Size
+                : -1;
+    }
+
     private static int TryWriteIBinaryObjectWrite(
         object value     ,
         Span<byte> result,
@@ -309,6 +330,13 @@ public static partial class Bytes
             return -1;
         }
     }
+
+    private static bool TryWriteCustomBinaryAttributeWrapper(
+        object?    obj   ,
+        Span<byte> output,
+        string?    id    ,
+        BytesParam param )
+        => obj is IBinaryCustom bc && bc.TryWriteCustom(output, id, param);
 
     private static bool TryWriteIBinaryIntegerLEWrapper<T>(
             T                 value       ,

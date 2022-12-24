@@ -286,11 +286,16 @@ public static partial class Bytes
                     => bpa.Size < 0 || bpa.Size > data.Length ? -1 : bpa.Size,
                 BinaryExactAttribute bea
                     => TryReadBinaryExactAttribute(data, bea),
-                CustomBinaryAttribute cba => TryReadCustomBinaryAttribute(
+                ExtensionBinaryAttribute cba => TryReadExtensionBinaryAttribute(
                     data  ,
                     result,
                     cba   ,
                     m     ,
+                    objPar),
+                CustomBinaryAttribute cba => TryReadCustomBinaryAttribute(
+                    result,
+                    data  ,
+                    cba   ,
                     objPar),
                 _ => -1,
             };
@@ -353,10 +358,10 @@ public static partial class Bytes
         return rb;
     }
 
-    private static int TryReadCustomBinaryAttribute(
+    private static int TryReadExtensionBinaryAttribute(
         ReadOnlySpan<byte>    data  ,
         object                result,
-        CustomBinaryAttribute cba   ,
+        ExtensionBinaryAttribute cba   ,
         BinaryAttributeInfo   m     ,
         BytesParam            objPar)
     {
@@ -371,6 +376,24 @@ public static partial class Bytes
 
         m.SetValue(result, obj);
         return rb;
+    }
+
+    private static int TryReadCustomBinaryAttribute(
+        object                obj  ,
+        ReadOnlySpan<byte>    data ,
+        CustomBinaryAttribute cba  ,
+        BytesParam            param)
+    {
+        if (data.Length < cba.Size)
+            return -1;
+
+        return TryReadCustomBinaryAttributeWrapper(
+            obj             ,
+            data[..cba.Size],
+            cba.ID          ,
+            param           )
+                ? cba.Size
+                : -1;
     }
 
     private static unsafe int TryReadIBinaryInteger(
@@ -453,6 +476,13 @@ public static partial class Bytes
         ret = result is null && ret >= 0 ? -1 : ret;
         return ret;
     }
+
+    private static bool TryReadCustomBinaryAttributeWrapper(
+        object?            obj  ,
+        ReadOnlySpan<byte> data ,
+        string?            id   ,
+        BytesParam         param)
+        => obj is IBinaryCustom bc && bc.TryReadCustom(data, id, param);
 
     // Wrappers for IBinaryInteger TryRead methods with
     // SizedPointer as parameter instead of Span

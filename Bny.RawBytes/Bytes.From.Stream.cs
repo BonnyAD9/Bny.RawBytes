@@ -147,10 +147,15 @@ public static partial class Bytes
                     => TryWriteBinaryPaddingAttribute(output, bpa),
                 BinaryExactAttribute bea
                     => TryWriteBinaryExactAttribute(output, bea),
-                CustomBinaryAttribute cba => cba.WriteToStream(
+                ExtensionBinaryAttribute cba => cba.WriteToStream(
                     m.GetValue(value)                  ,
                     output                             ,
                     objPar with { Type = m.MemberType }),
+                CustomBinaryAttribute cba => TryWriteCustomBinaryAttribute(
+                    value ,
+                    output,
+                    cba   ,
+                    objPar),
                 _ => false,
             };
 
@@ -206,6 +211,21 @@ public static partial class Bytes
             return false;
 
         output.Write(encoding.GetBytes(bea.Data));
+        return true;
+    }
+
+    private static bool TryWriteCustomBinaryAttribute(
+        object?               obj   ,
+        Stream                output,
+        CustomBinaryAttribute cba   ,
+        BytesParam            param )
+    {
+        Span<byte> buffer = new byte[cba.Size];
+        
+        if (!TryWriteCustomBinaryAttributeWrapper(obj, buffer, cba.ID, param))
+            return false;
+
+        output.Write(buffer);
         return true;
     }
 

@@ -1,74 +1,44 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Runtime.CompilerServices;
 
 namespace Bny.RawBytes;
 
 /// <summary>
-/// Derive from this class to create custom attribute for binary data
+/// Represents data that will be readed manually
 /// </summary>
-public abstract class CustomBinaryAttribute : BinaryAttribute
+public class CustomBinaryAttribute : BinaryAttribute
 {
     /// <summary>
-    /// The constructor
+    /// Size of the data to read
     /// </summary>
+    public int Size => _size;
+    readonly int _size;
+
+    /// <summary>
+    /// ID of the conversion (will be passed to the read/write method)
+    /// </summary>
+    public string? ID => _id;
+    readonly string? _id;
+
+    /// <summary>
+    /// Represents data that will be converted in a custom way. The class in
+    /// which is member with this attribute is must implement the
+    /// IBinaryCustom interface
+    /// </summary>
+    /// <param name="size">Size of the data to read</param>
+    /// <param name="id">
+    /// ID of the conversion (will be passed to the read/write method)
+    /// </param>
     /// <param name="order">
-    /// Order of the attributes, should be set with the [CallerLineNumber]
-    /// attribute
+    /// Order of the attribute (line number by default)
     /// </param>
-    public CustomBinaryAttribute(int order) : base(order) { }
-
-    /// <summary>
-    /// Reads the object from span
-    /// </summary>
-    /// <param name="span">Span to read from</param>
-    /// <param name="obj">
-    /// Resulting object. Can be null only if the return value is negative.
-    /// </param>
-    /// <param name="param">Conversion parameters</param>
-    /// <returns>
-    /// Number of bytes readed from the span on success, otherwise negative
-    /// </returns>
-    public abstract int ReadFromSpan(
-            ReadOnlySpan<byte> span ,
-        out object?            obj  ,
-            BytesParam         param);
-
-    /// <summary>
-    /// Reads the object from stream
-    /// </summary>
-    /// <param name="stream">Stream to read from</param>
-    /// <param name="obj">
-    /// Resulting object. Can be null only if the return value is false
-    /// </param>
-    /// <param name="param">Conversion parameters</param>
-    /// <returns>True on success, otherwise false</returns>
-    public abstract bool ReadFromStream(
-                                Stream     stream,
-        [NotNullWhen(true)] out object?    obj   ,
-                                BytesParam param );
-
-    /// <summary>
-    /// Writes the given object data to span
-    /// </summary>
-    /// <param name="obj">Object to write the data</param>
-    /// <param name="output">Where to write the data</param>
-    /// <param name="param">Conversion parameters</param>
-    /// <returns>
-    /// Number of bytes written on success, otherwise negative
-    /// </returns>
-    public abstract int WriteToSpan(
-        object?    obj   ,
-        Span<byte> output,
-        BytesParam param );
-
-    /// <summary>
-    /// Writes the given object to the stream
-    /// </summary>
-    /// <param name="obj">Object to write to the stream</param>
-    /// <param name="output">Stream to write to</param>
-    /// <param name="param">Conversion parameters</param>
-    /// <returns>True on success, otherwise false</returns>
-    public abstract bool WriteToStream(
-        object?    obj   ,
-        Stream     output,
-        BytesParam param );
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown for negative size
+    /// </exception>
+    public CustomBinaryAttribute(int size, string? id = null, [CallerLineNumber] int order = 0) : base(order)
+    {
+        if (size < 0)
+            throw new ArgumentOutOfRangeException(nameof(size));
+        _size = size;
+        _id = id;
+    }
 }
