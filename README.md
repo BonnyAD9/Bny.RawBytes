@@ -45,8 +45,12 @@ class BinaryTest
 [67108864(512 * 131072)]
 ```
 
+## How to get it
+- This library is available as [NuGet Package](https://www.nuget.org/packages/Bny.RawBytes/)
+
 ## Links
 - **Author:** [BonnyAD9](https://github.com/BonnyAD9)
 - **GitHub repository:** [Bny.RawBytes](https://github.com/BonnyAD9/Bny.RawBytes)
 - **Documentation:** [Doxygen](https://bonnyad9.github.io/Bny.RawBytes/)
 - **My Website:** [bonnyad9.github.io](https://bonnyad9.github.io/)
+- **NuGetPackage:** [Bny.RawBytes](https://www.nuget.org/packages/Bny.RawBytes/)
