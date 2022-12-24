@@ -5,6 +5,9 @@ namespace Bny.RawBytes;
 /// <summary>
 /// Represents data that will be readed manually
 /// </summary>
+[AttributeUsage(    AttributeTargets.Field | AttributeTargets.Property,
+    AllowMultiple = true                                              ,
+    Inherited     = false                                             )]
 public class CustomBinaryAttribute : BinaryAttribute
 {
     /// <summary>
