@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net7.0</TargetFramework>
@@ -10,7 +10,7 @@
 		<Authors>BonnyAD9</Authors>
 		<Description>C# library for converting from and to bytes</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageLicenseExpression>MIT License</PackageLicenseExpression>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
     </PropertyGroup>
 
     <ItemGroup>

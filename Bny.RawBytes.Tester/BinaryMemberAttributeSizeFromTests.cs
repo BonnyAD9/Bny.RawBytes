@@ -7,7 +7,7 @@ internal class BinaryMemberAttributeSizeFromTests
     class TestClass
     {
         [BinaryMember(size: 5)]
-        public string Value;
+        public string? Value;
     }
 
     [UnitTest]
