@@ -207,6 +207,16 @@ public static partial class Bytes
                         match.CopyTo(result[..wb]);
                         break;
                     }
+                case CustomBinaryAttribute cba:
+                    wb = cba.WriteToSpan(
+                        m.GetValue(value),
+                        result,
+                        objPar with { Type = m.MemberType }
+                    );
+
+                    if (wb < 0)
+                        return wb;
+                    break;
                 default:
                     return -1;
             }

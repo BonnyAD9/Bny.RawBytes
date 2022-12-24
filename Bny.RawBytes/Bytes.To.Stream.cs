@@ -120,7 +120,7 @@ public static partial class Bytes
                 return false;
             }
 
-            result = Enum.ToObject(par.Type, obj);
+            result = Enum.ToObject(par.Type, obj!);
             return true;
         }
 
@@ -281,6 +281,18 @@ public static partial class Bytes
 
                         if (!buffer.StartsWith(match))
                             return false;
+                        break;
+                    }
+                case CustomBinaryAttribute cba:
+                    {
+                        if (!cba.ReadFromStream(
+                            data,
+                            out var obj,
+                            objPar with { Type = m.MemberType }
+                        ))
+                            return false;
+
+                        m.SetValue(result, obj);
                         break;
                     }
                 default:

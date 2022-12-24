@@ -22,10 +22,14 @@ public record BytesParam(
 {
     // to silence the warning
     private Type? _type;
-    internal Type Type
+
+    /// <summary>
+    /// Type of the data to convert
+    /// </summary>
+    public Type Type
     {
         get => _type!;
-        set => _type = value;
+        internal set => _type = value;
     }
 
     internal bool IsSigned(bool def)

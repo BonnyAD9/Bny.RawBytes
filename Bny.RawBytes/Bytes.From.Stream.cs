@@ -170,6 +170,14 @@ public static partial class Bytes
                         output.Write(encoding.GetBytes(bea.Data));
                         break;
                     }
+                case CustomBinaryAttribute cba:
+                    if (!cba.WriteToStream(
+                        m.GetValue(value),
+                        output,
+                        objPar with { Type = m.MemberType }
+                    ))
+                        return false;
+                    break;
                 default:
                     return false;
             }

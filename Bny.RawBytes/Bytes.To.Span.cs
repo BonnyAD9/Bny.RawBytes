@@ -322,6 +322,20 @@ public static partial class Bytes
                             return -1;
                         break;
                     }
+                case CustomBinaryAttribute cba:
+                    {
+                        rb = cba.ReadFromSpan(
+                            data,
+                            out var obj,
+                            objPar with { Type = m.MemberType }
+                        );
+
+                        if (rb < 0)
+                            return rb;
+
+                        m.SetValue(result, obj);
+                        break;
+                    }
                 default:
                     return -1;
             }
