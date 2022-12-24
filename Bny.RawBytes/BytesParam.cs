@@ -13,12 +13,14 @@
 /// Determines whether data that is too large will be trimmed,
 /// or will rase an error
 /// </param>
+/// <param name="TrimChars">Characters to trim in strings</param>
 public record BytesParam(
     Endianness Endianness     = Endianness.Default,
     Sign       Sign           = Sign.Default      ,
     string     Encoding       = "utf-8"           ,
     bool       NullTerminated = false             ,
-    bool       TrimLargeData  = false             )
+    bool       TrimLargeData  = false             ,
+    string     TrimChars      = "")
 {
     // to silence the warning
     private Type? _type;
@@ -52,12 +54,12 @@ public record BytesParam(
         if (NullTerminated)
             return GetEncoding()?.GetString(data, out bytesReaded);
         bytesReaded = data.Length;
-        return GetEncoding()?.GetString(data);
+        return GetEncoding()?.GetString(data).Trim(TrimChars.ToArray());
     }
 
     internal string? GetString(Stream stream) => NullTerminated
-        ? GetEncoding()?.GetString(stream, out _)
-        : GetEncoding()?.GetString(stream);
+        ? GetEncoding()?.GetString(stream, out _).Trim(TrimChars.ToArray())
+        : GetEncoding()?.GetString(stream).Trim(TrimChars.ToArray());
 
 
     internal int GetBytes(string str, Span<byte> result)
@@ -65,6 +67,8 @@ public record BytesParam(
         var enc = GetEncoding();
         if (enc is null)
             return -1;
+
+        str = str.Trim(TrimChars.ToArray());
 
         if (NullTerminated)
             str += '\0';
@@ -86,6 +90,8 @@ public record BytesParam(
         var enc = GetEncoding();
         if (enc is null)
             return false;
+
+        str = str.Trim(TrimChars.ToArray());
 
         output.Write(enc.GetBytes(str));
         if (NullTerminated)

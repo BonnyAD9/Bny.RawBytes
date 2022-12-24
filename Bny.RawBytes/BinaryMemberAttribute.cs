@@ -49,6 +49,12 @@ public class BinaryMemberAttribute : BinaryAttribute
     private readonly bool _trimLargeData;
 
     /// <summary>
+    /// Characters to trim when reading/writing strings
+    /// </summary>
+    public string TrimChars => _trimChars;
+    private readonly string _trimChars;
+
+    /// <summary>
     /// Creates new BinaryFieldAttribute
     /// </summary>
     /// <param name="endianness">prefered byte order of the conversion</param>
@@ -69,6 +75,9 @@ public class BinaryMemberAttribute : BinaryAttribute
     /// Determines whether data that is too large to fit will be trimmed
     /// or wil rise an error
     /// </param>
+    /// <param name="trimChars">
+    /// Characters to trim when reading/writing strings
+    /// </param>
     /// <param name="order">
     /// order of the fields, this is by default the line number
     /// </param>
@@ -79,6 +88,7 @@ public class BinaryMemberAttribute : BinaryAttribute
                            string?    encoding       = null              ,
                            bool       nullTerminated = false             ,
                            bool       trimLargeData  = false             ,
+                           string     trimChars      = ""                ,
         [CallerLineNumber] int        order          = 0                 )
         : base(order)
     {
@@ -88,5 +98,6 @@ public class BinaryMemberAttribute : BinaryAttribute
         _encoding = encoding;
         _nullTerminated = nullTerminated;
         _trimLargeData = trimLargeData;
+        _trimChars = trimChars;
     }
 }
