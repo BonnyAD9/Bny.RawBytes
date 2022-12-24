@@ -30,7 +30,8 @@ var NAVTREE =
       [ "Code", "index.html#autotoc_md5", null ],
       [ "Output", "index.html#autotoc_md6", null ]
     ] ],
-    [ "Links", "index.html#autotoc_md7", null ],
+    [ "How to get it", "index.html#autotoc_md7", null ],
+    [ "Links", "index.html#autotoc_md8", null ],
     [ "Bny.RawBytes", "md__bny__raw_bytes__r_e_a_d_m_e.html", [
       [ "In this directory", "md__bny__raw_bytes__r_e_a_d_m_e.html#autotoc_md1", null ]
     ] ],
