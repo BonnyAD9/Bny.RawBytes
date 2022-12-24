@@ -1,7 +1,10 @@
 var searchData=
 [
-  ['name_0',['Name',['../class_binary_encoding.html#a9235718a24e37f8dab9e1e8c6075d5c7',1,'BinaryEncoding.Name()'],['../class_net_binary_encoding.html#ac5e842846fd2c827f0dad006f987c659',1,'NetBinaryEncoding.Name()']]],
-  ['netbinaryencoding_1',['NetBinaryEncoding',['../class_net_binary_encoding.html',1,'NetBinaryEncoding'],['../class_net_binary_encoding.html#ad9f3f7ec5ac6dd7062add08c5a5e04c8',1,'NetBinaryEncoding.NetBinaryEncoding()']]],
-  ['nullterminated_2',['NullTerminated',['../class_binary_member_attribute.html#a2c9e3808d4dadbc0813adc953ba13bba',1,'BinaryMemberAttribute']]],
-  ['nullterminator_3',['NullTerminator',['../class_binary_encoding.html#a058a5299edfb566eb2646d92b52aebf4',1,'BinaryEncoding']]]
+  ['ibinarycustom_0',['IBinaryCustom',['../interface_i_binary_custom.html',1,'']]],
+  ['ibinaryobject_1',['IBinaryObject',['../interface_i_binary_object.html',1,'']]],
+  ['ibinaryobjectstream_2',['IBinaryObjectStream',['../interface_i_binary_object_stream.html',1,'']]],
+  ['ibinaryobjectwrite_3',['IBinaryObjectWrite',['../interface_i_binary_object_write.html',1,'']]],
+  ['id_4',['ID',['../class_custom_binary_attribute.html#a897c8480f5f348ae31aba26f8706bb5f',1,'CustomBinaryAttribute']]],
+  ['init_5',['Init',['../class_binary_encoding.html#a9ff3f2ab5cf1962477f146d3a858a864',1,'BinaryEncoding']]],
+  ['isdefaultle_6',['IsDefaultLE',['../class_bytes.html#af2da80ea9a459f75f11a6410ca104432',1,'Bytes']]]
 ];

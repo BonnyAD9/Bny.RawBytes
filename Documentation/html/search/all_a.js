@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['readsize_0',['ReadSize',['../interface_i_binary_object.html#aeef1d701c904a46e79b15def8cc47960',1,'IBinaryObject']]]
+  ['order_0',['Order',['../class_binary_attribute.html#a4948dde84c8d0e56390520d027878fd3',1,'BinaryAttribute']]]
 ];

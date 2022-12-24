@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['defaultendianness_0',['DefaultEndianness',['../class_bytes.html#af12b78d78ad4790ac41ad1d285e8241c',1,'Bytes']]]
+  ['custombinaryattribute_0',['CustomBinaryAttribute',['../class_custom_binary_attribute.html',1,'CustomBinaryAttribute'],['../class_custom_binary_attribute.html#a0b43244aab485d6dcdc0cb9d66863050',1,'CustomBinaryAttribute.CustomBinaryAttribute()']]]
 ];

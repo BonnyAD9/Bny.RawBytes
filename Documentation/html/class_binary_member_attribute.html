@@ -25,7 +25,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Bny.RawBytes<span id="projectnumber">&#160;0.0.0</span>
+   <div id="projectname">Bny.RawBytes<span id="projectnumber">&#160;1.0.0</span>
    </div>
    <div id="projectbrief">C# library for reading and writing binary data</div>
   </td>
@@ -112,9 +112,9 @@ Inheritance diagram for BinaryMemberAttribute:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:ad0decb9c37f114f51d2a27b0fdfbe74d"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_binary_member_attribute.html#ad0decb9c37f114f51d2a27b0fdfbe74d">BinaryMemberAttribute</a> (<a class="el" href="class_binary_member_attribute.html#ac23205dfb1c24859bb167bb2fd6b9f76">Endianness</a> endianness=Endianness.Default, int size=-1, Sign signed=Sign.Default, string? encoding=null, bool nullTerminated=false, [CallerLineNumber] int order=0)</td></tr>
-<tr class="memdesc:ad0decb9c37f114f51d2a27b0fdfbe74d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates new BinaryFieldAttribute   <a href="class_binary_member_attribute.html#ad0decb9c37f114f51d2a27b0fdfbe74d">More...</a><br /></td></tr>
-<tr class="separator:ad0decb9c37f114f51d2a27b0fdfbe74d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a999bd97a081d3b67ab1858ef4b79d485"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_binary_member_attribute.html#a999bd97a081d3b67ab1858ef4b79d485">BinaryMemberAttribute</a> (<a class="el" href="class_binary_member_attribute.html#ac23205dfb1c24859bb167bb2fd6b9f76">Endianness</a> endianness=Endianness.Default, int size=-1, Sign signed=Sign.Default, string? encoding=null, bool nullTerminated=false, bool trimLargeData=false, [CallerLineNumber] int order=0)</td></tr>
+<tr class="memdesc:a999bd97a081d3b67ab1858ef4b79d485"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates new BinaryFieldAttribute   <a href="class_binary_member_attribute.html#a999bd97a081d3b67ab1858ef4b79d485">More...</a><br /></td></tr>
+<tr class="separator:a999bd97a081d3b67ab1858ef4b79d485"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_methods_class_binary_attribute"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_class_binary_attribute')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="class_binary_attribute.html">BinaryAttribute</a></td></tr>
 <tr class="memitem:ab6015a0bf225d55dff7e615831c35472 inherit pub_methods_class_binary_attribute"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_binary_attribute.html#ab6015a0bf225d55dff7e615831c35472">BinaryAttribute</a> (int order)</td></tr>
 <tr class="memdesc:ab6015a0bf225d55dff7e615831c35472 inherit pub_methods_class_binary_attribute"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets the order in this attribute   <a href="class_binary_attribute.html#ab6015a0bf225d55dff7e615831c35472">More...</a><br /></td></tr>
@@ -142,6 +142,10 @@ string?&#160;</td><td class="memItemRight" valign="bottom"><b>Encoding</b><code>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>NullTerminated</b><code> [get]</code></td></tr>
 <tr class="memdesc:a2c9e3808d4dadbc0813adc953ba13bba"><td class="mdescLeft">&#160;</td><td class="mdescRight">Determines whether the strings are null terminated  <br /></td></tr>
 <tr class="separator:a2c9e3808d4dadbc0813adc953ba13bba"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a39891f4decd720c60369bc3b74f89f8d"><td class="memItemLeft" align="right" valign="top"><a id="a39891f4decd720c60369bc3b74f89f8d" name="a39891f4decd720c60369bc3b74f89f8d"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>TrimLargeData</b><code> [get]</code></td></tr>
+<tr class="memdesc:a39891f4decd720c60369bc3b74f89f8d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Determines whether data that is too large to fit will be trimmed or wil rise an error  <br /></td></tr>
+<tr class="separator:a39891f4decd720c60369bc3b74f89f8d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header properties_class_binary_attribute"><td colspan="2" onclick="javascript:toggleInherit('properties_class_binary_attribute')"><img src="closed.png" alt="-"/>&#160;Properties inherited from <a class="el" href="class_binary_attribute.html">BinaryAttribute</a></td></tr>
 <tr class="memitem:a4948dde84c8d0e56390520d027878fd3 inherit properties_class_binary_attribute"><td class="memItemLeft" align="right" valign="top"><a id="a4948dde84c8d0e56390520d027878fd3" name="a4948dde84c8d0e56390520d027878fd3"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>Order</b><code> [get]</code></td></tr>
@@ -151,8 +155,8 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>Order</b><code> [get]<
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p >Represents a binary field in a BinaryObject  </p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="ad0decb9c37f114f51d2a27b0fdfbe74d" name="ad0decb9c37f114f51d2a27b0fdfbe74d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad0decb9c37f114f51d2a27b0fdfbe74d">&#9670;&#160;</a></span>BinaryMemberAttribute()</h2>
+<a id="a999bd97a081d3b67ab1858ef4b79d485" name="a999bd97a081d3b67ab1858ef4b79d485"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a999bd97a081d3b67ab1858ef4b79d485">&#9670;&#160;</a></span>BinaryMemberAttribute()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -190,6 +194,12 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>Order</b><code> [get]<
         <tr>
           <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype">bool&#160;</td>
+          <td class="paramname"><em>trimLargeData</em> = <code>false</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
           <td class="paramtype">[CallerLineNumber] int&#160;</td>
           <td class="paramname"><em>order</em> = <code>0</code>&#160;</td>
         </tr>
@@ -209,6 +219,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>Order</b><code> [get]<
     <tr><td class="paramname">signed</td><td>specifies whether when reading the value should be signed, works only for IBinaryNumber </td></tr>
     <tr><td class="paramname">encoding</td><td>The string encoding, null for default encoding </td></tr>
     <tr><td class="paramname">nullTerminated</td><td>Determines whether the string is null terminated </td></tr>
+    <tr><td class="paramname">trimLargeData</td><td>Determines whether data that is too large to fit will be trimmed or wil rise an error </td></tr>
     <tr><td class="paramname">order</td><td>order of the fields, this is by default the line number </td></tr>
   </table>
   </dd>

@@ -1,5 +1,7 @@
 var searchData=
 [
-  ['from_0',['From',['../class_bytes.html#a0e0eac6bac943c2beecb288ca44b2554',1,'Bytes.From(object? value, Span&lt; byte &gt; result, BytesParam? par=null)'],['../class_bytes.html#a492c0b6667e8c8e5120bdd57874ac0bd',1,'Bytes.From(object? value, Stream output, BytesParam? par=null)']]],
-  ['from_3c_20t_20_3e_1',['From&lt; T &gt;',['../class_bytes.html#a29977287fdea5d857eb04a44d1ba2acb',1,'Bytes.From&lt; T &gt;(T? value, Span&lt; byte &gt; result, BytesParam? par=null)'],['../class_bytes.html#a79c9b126f7163ecaf448f74402840613',1,'Bytes.From&lt; T &gt;(T? value, Stream output, BytesParam? par=null)']]]
+  ['encoding_0',['Encoding',['../class_binary_member_attribute.html#a962b00951235a8093aa5ba297de8d4d5',1,'BinaryMemberAttribute.Encoding()'],['../class_net_binary_encoding.html#a63220157bde988840aa3ef7f75c0b711',1,'NetBinaryEncoding.Encoding()']]],
+  ['encodings_1',['Encodings',['../class_binary_encoding.html#abc9371440c7d622750ef4d697892f46b',1,'BinaryEncoding']]],
+  ['endianness_2',['Endianness',['../class_binary_member_attribute.html#ac23205dfb1c24859bb167bb2fd6b9f76',1,'BinaryMemberAttribute.Endianness()'],['../class_binary_object_attribute.html#ae68280630835f05479a81d57e2506ce6',1,'BinaryObjectAttribute.Endianness()']]],
+  ['extensionbinaryattribute_3',['ExtensionBinaryAttribute',['../class_extension_binary_attribute.html',1,'ExtensionBinaryAttribute'],['../class_extension_binary_attribute.html#aae3026f90268d8c81f25a0412516c936',1,'ExtensionBinaryAttribute.ExtensionBinaryAttribute()']]]
 ];

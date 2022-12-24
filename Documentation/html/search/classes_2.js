@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['netbinaryencoding_0',['NetBinaryEncoding',['../class_net_binary_encoding.html',1,'']]]
+  ['extensionbinaryattribute_0',['ExtensionBinaryAttribute',['../class_extension_binary_attribute.html',1,'']]]
 ];

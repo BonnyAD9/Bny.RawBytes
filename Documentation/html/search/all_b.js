@@ -1,5 +1,6 @@
 var searchData=
 [
-  ['signed_0',['Signed',['../class_binary_member_attribute.html#a6412152b2d392747167a22f683d8838c',1,'BinaryMemberAttribute']]],
-  ['size_1',['Size',['../class_binary_member_attribute.html#a4405673775d0dc1547ee651d523ddca3',1,'BinaryMemberAttribute.Size()'],['../class_binary_padding_attribute.html#aa8251befa3f80a913740f3c328a387a7',1,'BinaryPaddingAttribute.Size()']]]
+  ['readfromspan_0',['ReadFromSpan',['../class_extension_binary_attribute.html#a455ccab2582610322c17714f0307973e',1,'ExtensionBinaryAttribute']]],
+  ['readfromstream_1',['ReadFromStream',['../class_extension_binary_attribute.html#a0899c89eaf1b72e49632bc560212e74b',1,'ExtensionBinaryAttribute']]],
+  ['readsize_2',['ReadSize',['../interface_i_binary_object.html#aeef1d701c904a46e79b15def8cc47960',1,'IBinaryObject']]]
 ];

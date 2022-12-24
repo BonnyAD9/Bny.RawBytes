@@ -25,7 +25,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Bny.RawBytes<span id="projectnumber">&#160;0.0.0</span>
+   <div id="projectname">Bny.RawBytes<span id="projectnumber">&#160;1.0.0</span>
    </div>
    <div id="projectbrief">C# library for reading and writing binary data</div>
   </td>
@@ -97,18 +97,29 @@ $(document).ready(function(){initNavTree('md__bny__raw_bytes__r_e_a_d_m_e.html',
 <h1><a class="anchor" id="autotoc_md1"></a>
 In this directory</h1>
 <ul>
-<li><b>Bytes.cs:</b> contains the <a class="el" href="class_bytes.html" title="Contains functions for converting from and to byte array">Bytes</a><code>static class (contains for example the</code><a class="el" href="class_bytes.html#a3c2eb17ba91c35d6c07f39f3e4a6726b" title="Converts byte array to the given type">Bytes.To</a><code>and</code><a class="el" href="class_bytes.html#a0e0eac6bac943c2beecb288ca44b2554" title="Converts the value into byte array">Bytes.From</a><code>methods)</code></li>
-<li><code>**BinaryObjectAttribute.cs:** contains the</code><a class="el" href="class_binary_object_attribute.html" title="Represents a object that can be converted to and from binary data">BinaryObjectAttribute</a><code>for marking types that can be converted to binary</code></li>
-<li><code>**BinaryMemberAttribute.cs:** contains the</code><a class="el" href="class_binary_member_attribute.html" title="Represents a binary field in a BinaryObject">BinaryMemberAttribute</a><code>for marking properties and fields that specify the conversion to binary</code></li>
-<li><code>**BytesParam.cs:** contains the</code>BytesParam<code>record for passing info to the</code><a class="el" href="class_bytes.html#a0e0eac6bac943c2beecb288ca44b2554" title="Converts the value into byte array">Bytes.From</a><code>and</code><a class="el" href="class_bytes.html#a3c2eb17ba91c35d6c07f39f3e4a6726b" title="Converts byte array to the given type">Bytes.To</a><code>methods about the conversion</code></li>
-<li><code>**Endianness.cs:** contains the</code>Endianness<code>enum that represents the endianness of a conversion</code></li>
-<li><code>**Sign.cs:** contains the</code>Sign<code>enum that specifies whether number should be signed or not</code></li>
-<li><code>**BinaryEncoding.cs:** contains the</code><a class="el" href="class_binary_encoding.html" title="Represents encoding used in binary conversions">BinaryEncoding</a><code>abstract class that represents encoding for binary conversion</code></li>
-<li><code>**IBinaryObject.cs:** contains the</code><a class="el" href="interface_i_binary_object.html" title="Generic methods for converting the type to and from binary data">IBinaryObject</a><code>interface</code></li>
-<li><code>**IBinaryObjectStream.cs:** contains the</code><a class="el" href="interface_i_binary_object_stream.html" title="Generic methods for converting the type to and from binary data">IBinaryObjectStream</a><code>interface</code></li>
-<li><code>**NetBinaryEncoding.cs:** contains the</code><a class="el" href="class_net_binary_encoding.html" title="Encoding from the .NET EncodingInfo">NetBinaryEncoding</a><code>class</code></li>
-<li><code>**IBinaryObjectWrite.cs:** contains the</code><a class="el" href="interface_i_binary_object_write.html" title="Represents a object that can be written into binary">IBinaryObjectWrite</a><code>interface that should not be implemented by itself</code></li>
-<li><code>**BinaryAttributeInfo.cs:** contains the iternal</code>BinaryAttributeInfo<code>class that helps interpreting the</code>BinaryAttribute`s </li>
+<li><b>Bytes.cs:</b> contains generic stuff in the <code><a class="el" href="class_bytes.html" title="Contains functions for converting from and to byte array">Bytes</a></code> static class</li>
+<li><b>Bytes.To.Span:</b> contains the span versions of the <code><a class="el" href="class_bytes.html#a3c2eb17ba91c35d6c07f39f3e4a6726b" title="Converts byte array to the given type">Bytes.To</a></code> methods</li>
+<li><b>Bytes.To.Stream:</b> contains the stream versions of the <code><a class="el" href="class_bytes.html#a3c2eb17ba91c35d6c07f39f3e4a6726b" title="Converts byte array to the given type">Bytes.To</a></code> methods</li>
+<li><b>Bytes.From.Span:</b> contains the span versions of the <code><a class="el" href="class_bytes.html#a0e0eac6bac943c2beecb288ca44b2554" title="Converts the value into byte array">Bytes.From</a></code> methods</li>
+<li><b>Bytes.From.Stream:</b> contains the stream versions of the <code><a class="el" href="class_bytes.html#a0e0eac6bac943c2beecb288ca44b2554" title="Converts the value into byte array">Bytes.From</a></code> methods</li>
+<li><b>BinaryObjectAttribute.cs:</b> contains the <code><a class="el" href="class_binary_object_attribute.html" title="Represents a object that can be converted to and from binary data">BinaryObjectAttribute</a></code> for marking types that can be converted to binary</li>
+<li><b>BinaryMemberAttribute.cs:</b> contains the <code><a class="el" href="class_binary_member_attribute.html" title="Represents a binary field in a BinaryObject">BinaryMemberAttribute</a></code> for marking properties and fields that specify the conversion to binary</li>
+<li><b>BinaryPaddingAttribute.cs:</b> contains the <code><a class="el" href="class_binary_padding_attribute.html" title="Specifies padding in the binary representation">BinaryPaddingAttribute</a></code> for specifying padding</li>
+<li><b>BinaryExactAttribute.cs:</b> contains the <code><a class="el" href="class_binary_exact_attribute.html" title="Checks whether the exact data is present">BinaryExactAttribute</a></code> for specifying exact binary data</li>
+<li><b>ExtensionBinaryAttribute.cs:</b> contains the <code><a class="el" href="class_extension_binary_attribute.html" title="Derive from this class to create custom attribute for binary data">ExtensionBinaryAttribute</a></code> abstract attribute as a base class for extensions</li>
+<li><b>CustomBinaryAttribute.cs:</b> contains the <code><a class="el" href="class_custom_binary_attribute.html" title="Represents data that will be readed manually">CustomBinaryAttribute</a></code> for custom read/write</li>
+<li><b>IBinaryCustom.cs:</b> contains the <code><a class="el" href="interface_i_binary_custom.html" title="Provides advanced ways of reading using attributes">IBinaryCustom</a></code> interface for custom read/write with <code><a class="el" href="class_custom_binary_attribute.html" title="Represents data that will be readed manually">CustomBinaryAttribute</a></code></li>
+<li><b>BytesParam.cs:</b> contains the <code>BytesParam</code> record for passing info to the <code><a class="el" href="class_bytes.html#a0e0eac6bac943c2beecb288ca44b2554" title="Converts the value into byte array">Bytes.From</a></code> and <code><a class="el" href="class_bytes.html#a3c2eb17ba91c35d6c07f39f3e4a6726b" title="Converts byte array to the given type">Bytes.To</a></code> methods about the conversion</li>
+<li><b>Endianness.cs:</b> contains the <code>Endianness</code> enum that represents the endianness of a conversion</li>
+<li><b>Sign.cs:</b> contains the <code>Sign</code> enum that specifies whether number should be signed or not</li>
+<li><b>BinaryEncoding.cs:</b> contains the <code><a class="el" href="class_binary_encoding.html" title="Represents encoding used in binary conversions">BinaryEncoding</a></code> abstract class that represents encoding for binary conversion</li>
+<li><b>IBinaryObject.cs:</b> contains the <code><a class="el" href="interface_i_binary_object.html" title="Generic methods for converting the type to and from binary data">IBinaryObject</a></code> interface</li>
+<li><b>IBinaryObjectStream.cs:</b> contains the <code><a class="el" href="interface_i_binary_object_stream.html" title="Generic methods for converting the type to and from binary data">IBinaryObjectStream</a></code> interface</li>
+<li><b>NetBinaryEncoding.cs:</b> contains the <code><a class="el" href="class_net_binary_encoding.html" title="Encoding from the .NET EncodingInfo">NetBinaryEncoding</a></code> class</li>
+<li><b>IBinaryObjectWrite.cs:</b> contains the <code><a class="el" href="interface_i_binary_object_write.html" title="Represents a object that can be written into binary">IBinaryObjectWrite</a></code> interface that should not be implemented by itself</li>
+<li><b>BinaryAttributeInfo.cs:</b> contains the iternal <code>BinaryAttributeInfo</code> class that helps interpreting the <code><a class="el" href="class_binary_attribute.html" title="The base attribute for all the other binary attributes Don&#39;t derive from this class (outside of the l...">BinaryAttribute</a></code>s</li>
+<li><b>MaxLengthStream.cs:</b> contains stream that limits the underlaing stream size</li>
+<li><b>BinaryAttribute.cs:</b> base class for all the binary attributes </li>
 </ul>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
