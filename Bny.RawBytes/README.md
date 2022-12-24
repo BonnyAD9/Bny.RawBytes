@@ -11,6 +11,9 @@ This directory contains the library source code.
 - **BinaryMemberAttribute.cs:** contains the `BinaryMemberAttribute` for marking properties and fields that specify the conversion to binary
 - **BinaryPaddingAttribute.cs:** contains the `BinaryPaddingAttribute` for specifying padding
 - **BinaryExactAttribute.cs:** contains the `BinaryExactAttribute` for specifying exact binary data
+- **ExtensionBinaryAttribute.cs:** contains the `ExtensionBinaryAttribute` abstract attribute as a base class for extensions
+- **CustomBinaryAttribute.cs:** contains the `CustomBinaryAttribute` for custom read/write
+- **IBinaryCustom.cs:** contains the `IBinaryCustom` interface for custom read/write with `CustomBinaryAttribute`
 - **BytesParam.cs:** contains the `BytesParam` record for passing info to the `Bytes.From` and `Bytes.To` methods about the conversion
 - **Endianness.cs:** contains the `Endianness` enum that represents the endianness of a conversion
 - **Sign.cs:** contains the `Sign` enum that specifies whether number should be signed or not
@@ -21,3 +24,4 @@ This directory contains the library source code.
 - **IBinaryObjectWrite.cs:** contains the `IBinaryObjectWrite` interface that should not be implemented by itself
 - **BinaryAttributeInfo.cs:** contains the iternal `BinaryAttributeInfo` class that helps interpreting the `BinaryAttribute`s
 - **MaxLengthStream.cs:** contains stream that limits the underlaing stream size
+- **BinaryAttribute.cs:** base class for all the binary attributes
