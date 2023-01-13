@@ -21,6 +21,8 @@ public abstract class BinaryEncoding
     {
         foreach (var e in Encoding.GetEncodings())
             Add(new NetBinaryEncoding(e));
+
+        Add(new HexBinaryEncoding());
     }
 
     /// <summary>
