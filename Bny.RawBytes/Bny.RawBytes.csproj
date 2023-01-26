@@ -21,7 +21,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Bny.General" Version="1.1.0" />
+      <PackageReference Include="Bny.General" Version="1.2.0" />
     </ItemGroup>
 
 </Project>
